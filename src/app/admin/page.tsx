@@ -5,8 +5,6 @@ import SupabaseNotice from "@/components/auth/SupabaseNotice";
 import AdminEditor from "@/components/admin/AdminEditor";
 import { isSupabaseConfigured } from "@/utils/supabase/config";
 import { createClient } from "@/utils/supabase/server";
-import { getPowerRanking, getRankings } from "@/data/api";
-import { POSITIONS, type Position } from "@/data/types";
 
 export default async function AdminPage() {
   if (!isSupabaseConfigured) {
@@ -52,24 +50,15 @@ export default async function AdminPage() {
     );
   }
 
-  // Default orders (mock RSO) the editor starts from before any saved edits.
-  const playerOrders = Object.fromEntries(
-    POSITIONS.map((p) => [
-      p,
-      getRankings(p, "rso")?.entries.map((e) => e.playerId) ?? [],
-    ]),
-  ) as Record<Position, string[]>;
-  const teamOrder = getPowerRanking("rso").map((e) => e.teamId);
-
   return (
     <PageContainer className="pb-12">
       <div className="py-8">
         <h1 className="mb-1 text-3xl font-bold text-ink">Admin</h1>
         <p className="mb-6 text-sm text-silver-deep">
-          Maintain the Media player rankings and the Media power ranking.
-          Reorder, then save.
+          Build the Media player rankings and the Media power ranking from a
+          blank sheet — add from the pool, then drag to order and save.
         </p>
-        <AdminEditor playerOrders={playerOrders} teamOrder={teamOrder} />
+        <AdminEditor />
       </div>
     </PageContainer>
   );
