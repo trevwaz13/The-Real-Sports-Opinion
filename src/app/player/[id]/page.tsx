@@ -186,17 +186,6 @@ export default async function PlayerPage({
                   </span>
                 </li>
               )}
-              {score.sustainedBonus > 0 && (
-                <li className="flex justify-between gap-2">
-                  <span className="text-silver-deep">
-                    Track record{" "}
-                    <span className="text-xs">(career production)</span>
-                  </span>
-                  <span className="font-semibold tabular-nums text-emerald-700">
-                    +{score.sustainedBonus}
-                  </span>
-                </li>
-              )}
             </ul>
           </div>
 

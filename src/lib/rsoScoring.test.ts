@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { rankByRso, scorePlayer } from "./rsoScoring";
+import { scorePlayer } from "./rsoScoring";
 import type { Player, PlayerStats, Position } from "@/data/types";
 
 // Minimal Player factory — only position + seasonStats matter for scoring.
-function makePlayer(
-  position: Position,
-  seasonStats: PlayerStats,
-  overrides: Partial<Player> = {},
-): Player {
+function makePlayer(position: Position, seasonStats: PlayerStats): Player {
   return {
     id: `TEST-${position}`,
     name: "Test Player",
@@ -23,7 +19,6 @@ function makePlayer(
     isFreeAgent: false,
     seasonStats,
     careerStats: seasonStats,
-    ...overrides,
   };
 }
 
@@ -113,16 +108,13 @@ describe("RSO scoring engine", () => {
     });
     const score = scorePlayer(hurt);
     expect(score.productionSubtotal).toBe(155);
-    // boost = min(17/10, 2.0) = 1.7 -> adjustment = 155 * (1.7 - 1) = 108.5
+    // boost = min(17/10, 1.7) = 1.7 -> adjustment = 155 * (1.7 - 1) = 108.5
     expect(score.availabilityAdjustment).toBe(108.5);
     expect(score.gamesPlayed).toBe(10);
-    // careerStats == seasonStats here: 15.5/g × 6 × min(10/40, 1) = 23.25
-    expect(score.sustainedBonus).toBe(23.25);
     expect(score.total).toBe(
       Math.round(
         (score.productionSubtotal +
           score.availabilityAdjustment +
-          score.sustainedBonus +
           score.bonusTotal) *
           100,
       ) / 100,
@@ -136,45 +128,6 @@ describe("RSO scoring engine", () => {
       gamesPlayed: 17,
     });
     expect(scorePlayer(full).availabilityAdjustment).toBe(0);
-  });
-
-  it("credits a strong career (sustained success) on a down season", () => {
-    // Weak current season, but an elite, lengthy career.
-    const proven = makePlayer(
-      "QB",
-      { passYds: 1500, passTD: 8, gamesPlayed: 8 },
-      {
-        careerStats: {
-          passYds: 40000,
-          passTD: 300,
-          gamesPlayed: 120,
-        },
-      },
-    );
-    const score = scorePlayer(proven);
-    // career prod = 40000*.025 + 300*4 = 1000 + 1200 = 2200 over 120 gms
-    // = 18.33/g × 6 × min(120/40, 1) = 110
-    expect(score.sustainedBonus).toBe(110);
-    expect(score.total).toBeGreaterThan(score.productionSubtotal);
-  });
-
-  it("keeps only the top scorer per team when onePerTeam is set (QB board)", () => {
-    const starter = makePlayer("QB", { passYds: 4000, passTD: 30, gamesPlayed: 17 }, {
-      id: "starter",
-      teamId: "AAA",
-    });
-    const backup = makePlayer("QB", { passYds: 500, passTD: 3, gamesPlayed: 4 }, {
-      id: "backup",
-      teamId: "AAA",
-    });
-    const other = makePlayer("QB", { passYds: 3500, passTD: 25, gamesPlayed: 17 }, {
-      id: "other",
-      teamId: "BBB",
-    });
-    const board = rankByRso([starter, backup, other], "QB", {
-      onePerTeam: true,
-    });
-    expect(board.map((e) => e.playerId)).toEqual(["starter", "other"]);
   });
 
   it("awards no bonus when a metric misses every tier", () => {
