@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getPlayer, getRankings, getTeam } from "@/data/api";
-import type { Position, RankingSource } from "@/data/types";
+import { fetchMediaRanking } from "@/data/userData";
+import type { Position, RankingEntry, RankingSource } from "@/data/types";
 import { SOURCE_LABELS, SOURCE_ORDER, SOURCE_SHORT } from "@/store/rankings";
 import { medalStyle } from "@/lib/medal";
 import PlayerHeadshot from "../PlayerHeadshot";
@@ -16,12 +17,34 @@ import TeamLogo from "../TeamLogo";
 // 32-deep ranking.
 export default function HomeRankings() {
   const [position, setPosition] = useState<Position>("QB");
+  // Editor-set Media order from Supabase, tagged with its position so a pending
+  // fetch never shows the previous position's players.
+  const [media, setMedia] = useState<{
+    pos: Position;
+    entries: RankingEntry[] | null;
+  }>({ pos: position, entries: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMediaRanking(position).then((r) => {
+      if (!cancelled) setMedia({ pos: position, entries: r });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [position]);
+
+  // Saved Media entries when available, otherwise the mock ranking.
+  const entriesFor = (s: RankingSource): RankingEntry[] =>
+    s === "media" && media.pos === position && media.entries
+      ? media.entries
+      : (getRankings(position, s)?.entries ?? []);
 
   // Rank lookups for every source so each row can show its cross-source ranks.
   const rankMaps = Object.fromEntries(
     SOURCE_ORDER.map((s) => [
       s,
-      new Map(getRankings(position, s)?.entries.map((e) => [e.playerId, e.rank])),
+      new Map(entriesFor(s).map((e) => [e.playerId, e.rank])),
     ]),
   ) as Record<RankingSource, Map<string, number | undefined>>;
 
@@ -31,7 +54,7 @@ export default function HomeRankings() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {SOURCE_ORDER.map((source) => {
-          const entries = getRankings(position, source)?.entries ?? [];
+          const entries = entriesFor(source);
           const otherSources = SOURCE_ORDER.filter((s) => s !== source);
           return (
             <div
