@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getPlayer, getRankings, getTeam } from "@/data/api";
-import { fetchMediaRanking } from "@/data/userData";
+import { fetchFanRanking, fetchMediaRanking } from "@/data/userData";
 import type { Position, RankingEntry, RankingSource } from "@/data/types";
 import { SOURCE_LABELS, SOURCE_ORDER, SOURCE_SHORT } from "@/store/rankings";
 import { medalStyle } from "@/lib/medal";
@@ -17,28 +17,37 @@ import TeamLogo from "../TeamLogo";
 // 32-deep ranking.
 export default function HomeRankings() {
   const [position, setPosition] = useState<Position>("QB");
-  // Editor-set Media order from Supabase, tagged with its position so a pending
-  // fetch never shows the previous position's players.
-  const [media, setMedia] = useState<{
+  // Live Media (editor-set) and Fan (vote aggregate) rankings from Supabase,
+  // tagged with their position so a pending fetch never shows the previous
+  // position's players. null → fall back to the mock; for Fan an empty array
+  // means "configured but no votes yet" (→ the "Waiting for all votes" state).
+  const [remote, setRemote] = useState<{
     pos: Position;
-    entries: RankingEntry[] | null;
-  }>({ pos: position, entries: null });
+    media: RankingEntry[] | null;
+    fan: RankingEntry[] | null;
+  }>({ pos: position, media: null, fan: null });
 
   useEffect(() => {
     let cancelled = false;
-    fetchMediaRanking(position).then((r) => {
-      if (!cancelled) setMedia({ pos: position, entries: r });
-    });
+    Promise.all([fetchMediaRanking(position), fetchFanRanking(position)]).then(
+      ([media, fan]) => {
+        if (!cancelled) setRemote({ pos: position, media, fan });
+      },
+    );
     return () => {
       cancelled = true;
     };
   }, [position]);
 
-  // Saved Media entries when available, otherwise the mock ranking.
-  const entriesFor = (s: RankingSource): RankingEntry[] =>
-    s === "media" && media.pos === position && media.entries
-      ? media.entries
-      : (getRankings(position, s)?.entries ?? []);
+  // Prefer the live Supabase ranking, else the mock. For Fan, an empty array
+  // (no votes) is kept as-is so the column shows its "waiting" state instead of
+  // the mock list.
+  const loaded = remote.pos === position;
+  const entriesFor = (s: RankingSource): RankingEntry[] => {
+    if (s === "media" && loaded && remote.media) return remote.media;
+    if (s === "fan" && loaded && remote.fan !== null) return remote.fan;
+    return getRankings(position, s)?.entries ?? [];
+  };
 
   // Rank lookups for every source so each row can show its cross-source ranks.
   const rankMaps = Object.fromEntries(
