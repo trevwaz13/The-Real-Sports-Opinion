@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { isSupabaseConfigured } from "@/utils/supabase/config";
 import { getPlayersByPosition, getRankings } from "./api";
 import type { PowerRankingEntry } from "./api";
+import { RANKED_SPOTS } from "./rankings";
 import { CURRENT_WEEK } from "./season";
 import type { Position, RankingEntry } from "./types";
 
@@ -39,7 +40,7 @@ function buildFanEntries(
     ...unvoted.map((p) => ({ id: p.id, score: 0 })),
   ];
 
-  return ordered.map((o, i) => ({
+  return ordered.slice(0, RANKED_SPOTS).map((o, i) => ({
     playerId: o.id,
     rank: i + 1,
     score: o.score,
@@ -84,7 +85,7 @@ export async function fetchMediaRanking(
     .eq("week", CURRENT_WEEK)
     .maybeSingle();
   if (error || !data) return null;
-  const ids = (data.player_ids as string[]) ?? [];
+  const ids = ((data.player_ids as string[]) ?? []).slice(0, RANKED_SPOTS);
   if (ids.length === 0) return null;
   return ids.map((id, i) => ({ playerId: id, rank: i + 1, score: ids.length - i }));
 }

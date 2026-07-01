@@ -15,7 +15,7 @@ import { GAMES } from "./games";
 import { getGameDetailById } from "./gameDetails";
 import { NEWS, type NewsCategory, type NewsItem } from "./news";
 import { PLAYERS, PLAYERS_BY_ID } from "./players";
-import { RANKINGS } from "./rankings";
+import { RANKED_SPOTS, RANKINGS } from "./rankings";
 import { CURRENT_WEEK } from "./season";
 import { TEAMS, TEAMS_BY_ID } from "./teams";
 import {
@@ -219,7 +219,7 @@ const RSO_RANKINGS: Record<Position, Ranking> = Object.fromEntries(
       position,
       source: "rso" as RankingSource,
       week: CURRENT_WEEK,
-      entries: rankByRso(PLAYERS, position),
+      entries: rankByRso(PLAYERS, position).slice(0, RANKED_SPOTS),
     },
   ]),
 ) as Record<Position, Ranking>;

@@ -19,6 +19,11 @@ import {
 // "media" stays editor-maintained (Phase 2.5 admin). The api surface
 // (getRankings) stays the same so pages never change.
 
+// A ranking lists only the top N players per position; anyone below is
+// unranked (shown as "—"). Fantasy rankings are the exception — they list
+// everyone — and are handled separately.
+export const RANKED_SPOTS = 32;
+
 function hashString(input: string): number {
   let h = 2166136261;
   for (let i = 0; i < input.length; i++) {
@@ -54,7 +59,8 @@ function buildRanking(position: Position, source: RankingSource): Ranking {
       playerId: player.id,
       rank: i + 1,
       score,
-    }));
+    }))
+    .slice(0, RANKED_SPOTS);
 
   return { position, source, week: CURRENT_WEEK, entries };
 }
