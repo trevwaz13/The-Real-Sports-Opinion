@@ -214,11 +214,12 @@ def roster_map(season):
 
 def build_players():
     season_stats = nfl.load_player_stats(seasons=[SEASON], summary_level="reg")
+    stat_by_id = {r["player_id"]: r for r in season_stats.iter_rows(named=True)}
 
-    # 2026 offseason roster drives team assignment + current bio; the 2025
-    # roster is a fallback for players who left the league after 2025.
+    # The 2026 offseason roster is the source of truth for who's on a team.
+    # 2025 stats are attached when they exist; rookies (2026 draft class) and
+    # players who missed 2025 injured appear with empty stats.
     rmap = roster_map(ROSTER_SEASON)
-    rmap_prev = roster_map(SEASON)
 
     # career: aggregate counting stats across seasons
     career_years = list(range(CAREER_FROM, SEASON + 1))
@@ -241,41 +242,60 @@ def build_players():
     cmap = {row["player_id"]: row for row in career_agg.iter_rows(named=True)}
 
     players = []
-    for row in season_stats.iter_rows(named=True):
-        pos_raw = row.get("position")
-        position = POS_MAP.get(pos_raw or "")
-        pid = row["player_id"]
-        ros = rmap.get(pid)
-        # Team comes from the 2026 roster. Players with 2025 stats who aren't on
-        # a 2026 roster (retired/unsigned) fall through to the free-agent list.
-        team = fix_abbr((ros or {}).get("team") or "")
-        if position is None or ros is None or team not in CURRENT:
+    for pid, ros in rmap.items():
+        status = ros.get("status") or "ACT"
+        if status in ("RET", "CUT"):
+            continue  # retired / cut — not actually on the team
+        team = fix_abbr(ros.get("team") or "")
+        if team not in CURRENT:
             continue
 
-        name = row.get("player_display_name") or ros.get("full_name") or pid
+        stat = stat_by_id.get(pid)
+        # Granular position: from 2025 stats when present, else the roster's
+        # depth-chart position (the roster 'position' lumps DL/DB/LB together).
+        pos_raw = (
+            (stat.get("position") if stat else None)
+            or ros.get("depth_chart_position")
+            or ros.get("position")
+        )
+        position = POS_MAP.get(pos_raw or "")
+        if position is None:
+            continue
+
+        name = (
+            (stat.get("player_display_name") if stat else None)
+            or ros.get("full_name")
+            or pid
+        )
         first = ros.get("first_name") or name.split(" ")[0]
         last = ros.get("last_name") or (name.split(" ")[-1] if " " in name else "")
         bd = ros.get("birth_date")
         age = (ROSTER_SEASON - int(str(bd)[:4])) if bd else 26
         yrs = ros.get("years_exp")
-        years_pro = int(yrs) if yrs is not None else 1
-        status = ros.get("status") or "ACT"
+        years_pro = int(yrs) if yrs is not None else 0
 
         players.append({
             "id": pid,
             "name": name,
             "firstName": first,
             "lastName": last,
-            "headshotPath": row.get("headshot_url") or ros.get("headshot_url") or "",
+            "headshotPath": (
+                (stat.get("headshot_url") if stat else None)
+                or ros.get("headshot_url")
+                or ""
+            ),
             "teamId": team,
             "position": position,
             "jerseyNumber": int(ros.get("jersey_number") or 0),
             "age": int(age),
             "yearsPro": max(0, years_pro),
-            "injuryStatus": "ir" if status in ("RES", "INA") else "healthy",
+            "injuryStatus": "ir" if status in ("RES", "INA", "PUP", "IR") else "healthy",
             "isFreeAgent": False,
-            "seasonStats": build_stats(row),
-            "careerStats": build_stats(cmap.get(pid, {"games": row.get("games")})),
+            # Empty 2025 line for rookies / players who missed the season.
+            "seasonStats": build_stats(stat) if stat else {"gamesPlayed": 0},
+            "careerStats": build_stats(
+                cmap.get(pid, {"games": (stat.get("games") if stat else 0)})
+            ),
         })
 
     players.sort(key=lambda p: p["id"])
