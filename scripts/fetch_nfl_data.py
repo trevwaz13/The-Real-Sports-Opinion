@@ -10,7 +10,8 @@ import os
 import polars as pl
 import nflreadpy as nfl
 
-SEASON = 2025
+SEASON = 2025        # stats we display (numbers) until the 2026 season is played
+ROSTER_SEASON = 2026  # team assignments (who's on which team) from the offseason
 CAREER_FROM = 2015
 OUT = os.path.join(os.path.dirname(__file__), "..", "src", "data", "real")
 
@@ -201,16 +202,23 @@ def build_teams():
     return out
 
 
-def build_players():
-    season_stats = nfl.load_player_stats(seasons=[SEASON], summary_level="reg")
-    rosters = nfl.load_rosters(seasons=[SEASON])
-
-    # roster lookup by gsis_id (jersey, age, exp, names, headshot, status)
+def roster_map(season):
+    """gsis_id -> latest roster row (jersey, age, exp, names, headshot, status, team)."""
     rmap = {}
-    for r in rosters.iter_rows(named=True):
+    for r in nfl.load_rosters(seasons=[season]).iter_rows(named=True):
         gid = r.get("gsis_id")
         if gid and gid not in rmap:
             rmap[gid] = r
+    return rmap
+
+
+def build_players():
+    season_stats = nfl.load_player_stats(seasons=[SEASON], summary_level="reg")
+
+    # 2026 offseason roster drives team assignment + current bio; the 2025
+    # roster is a fallback for players who left the league after 2025.
+    rmap = roster_map(ROSTER_SEASON)
+    rmap_prev = roster_map(SEASON)
 
     # career: aggregate counting stats across seasons
     career_years = list(range(CAREER_FROM, SEASON + 1))
@@ -236,17 +244,19 @@ def build_players():
     for row in season_stats.iter_rows(named=True):
         pos_raw = row.get("position")
         position = POS_MAP.get(pos_raw or "")
-        team = fix_abbr(row.get("recent_team") or "")
-        if position is None or team not in CURRENT:
-            continue
         pid = row["player_id"]
-        ros = rmap.get(pid, {})
+        ros = rmap.get(pid)
+        # Team comes from the 2026 roster. Players with 2025 stats who aren't on
+        # a 2026 roster (retired/unsigned) fall through to the free-agent list.
+        team = fix_abbr((ros or {}).get("team") or "")
+        if position is None or ros is None or team not in CURRENT:
+            continue
 
         name = row.get("player_display_name") or ros.get("full_name") or pid
         first = ros.get("first_name") or name.split(" ")[0]
         last = ros.get("last_name") or (name.split(" ")[-1] if " " in name else "")
         bd = ros.get("birth_date")
-        age = (SEASON - int(str(bd)[:4])) if bd else 26
+        age = (ROSTER_SEASON - int(str(bd)[:4])) if bd else 26
         yrs = ros.get("years_exp")
         years_pro = int(yrs) if yrs is not None else 1
         status = ros.get("status") or "ACT"
@@ -398,22 +408,17 @@ def build_game_stats():
     return out
 
 
-def build_free_agents(ids25, cmap):
-    """Notable 2024 producers who aren't on a 2025 roster."""
-    s24 = nfl.load_player_stats(seasons=[SEASON - 1], summary_level="reg")
-    r24 = nfl.load_rosters(seasons=[SEASON - 1])
-    rmap = {}
-    for r in r24.iter_rows(named=True):
-        gid = r.get("gsis_id")
-        if gid and gid not in rmap:
-            rmap[gid] = r
+def build_free_agents(rostered_ids, cmap):
+    """Notable 2025 producers who aren't on a 2026 offseason roster."""
+    stats = nfl.load_player_stats(seasons=[SEASON], summary_level="reg")
+    rmap = roster_map(SEASON)  # 2025 bio for players now off a roster
 
     from collections import defaultdict
     byp = defaultdict(list)
-    for row in s24.iter_rows(named=True):
+    for row in stats.iter_rows(named=True):
         pid = row["player_id"]
         pos = POS_MAP.get(row.get("position") or "")
-        if pid in ids25 or pos is None:
+        if pid in rostered_ids or pos is None:
             continue
         byp[pos].append((num(row.get("fantasy_points_ppr")), row))
 
@@ -425,7 +430,7 @@ def build_free_agents(ids25, cmap):
             ros = rmap.get(pid, {})
             name = row.get("player_display_name") or ros.get("full_name") or pid
             bd = ros.get("birth_date")
-            age = (SEASON - int(str(bd)[:4])) if bd else 28
+            age = (ROSTER_SEASON - int(str(bd)[:4])) if bd else 28
             yrs = ros.get("years_exp")
             out.append({
                 "id": pid,
@@ -458,8 +463,8 @@ def main():
     write("teams.json", build_teams())
     print("wrote teams")
 
-    players, cmap, ids25 = build_players()
-    free_agents = build_free_agents(ids25, cmap)
+    players, cmap, rostered_ids = build_players()
+    free_agents = build_free_agents(rostered_ids, cmap)
     write("players.json", players + free_agents)
     print(f"wrote {len(players)} players + {len(free_agents)} free agents")
 
