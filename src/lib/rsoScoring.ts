@@ -544,6 +544,9 @@ export interface RsoScore {
   // missed games to injury aren't penalized for lost volume. 0 for full-season
   // (or zero-production) players.
   availabilityAdjustment: number;
+  // Points added for sustained career production (per-game rate × experience),
+  // so a proven star doesn't crater on one down or injured year.
+  sustainedBonus: number;
   gamesPlayed: number;
   bonusTotal: number;
   production: ProductionLine[];
@@ -553,7 +556,24 @@ export interface RsoScore {
 // A full slate. Production is prorated to this pace based on games played,
 // capped so a tiny sample can't be inflated into elite volume.
 const FULL_SEASON_GAMES = 17;
-const MAX_AVAILABILITY_BOOST = 1.7; // fully protects players who logged 10+ games
+const MAX_AVAILABILITY_BOOST = 2.0; // fully protects players who logged 9+ games
+
+// Sustained-success ("track record") boost: reward a strong career per-game
+// rate, scaled up to the full amount only for players with a real body of work.
+const SUSTAINED_FULL_GAMES = 40; // ~2.5 seasons for the full track-record credit
+const SUSTAINED_GAMES = 6; // adds up to ~6 games of career-rate production
+
+// Sum production points for any stat line (used for both season and career).
+function productionPoints(stats: PlayerStats, config: ProductionConfig): number {
+  let sum = 0;
+  for (const [stat, multiplier] of Object.entries(config) as [
+    keyof PlayerStats,
+    number,
+  ][]) {
+    sum += (stats[stat] ?? 0) * multiplier;
+  }
+  return sum;
+}
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -650,12 +670,32 @@ export function scorePlayer(player: Player): RsoScore {
     availabilityAdjustment = round2(productionSubtotal * (boost - 1));
   }
 
+  // Track record: a career per-game production rate, scaled by how much of a
+  // career the player has (so one-year wonders don't get full credit). Only
+  // applied when the player actually took the field this season.
+  let sustainedBonus = 0;
+  if (gamesPlayed > 0) {
+    const careerGames = player.careerStats.gamesPlayed ?? 0;
+    const careerProduction = productionPoints(
+      player.careerStats,
+      config.production,
+    );
+    if (careerGames > 0 && careerProduction > 0) {
+      const careerPerGame = careerProduction / careerGames;
+      const experience = Math.min(careerGames / SUSTAINED_FULL_GAMES, 1);
+      sustainedBonus = round2(careerPerGame * SUSTAINED_GAMES * experience);
+    }
+  }
+
   return {
     playerId: player.id,
     position: player.position,
-    total: round2(productionSubtotal + availabilityAdjustment + bonusTotal),
+    total: round2(
+      productionSubtotal + availabilityAdjustment + sustainedBonus + bonusTotal,
+    ),
     productionSubtotal: round2(productionSubtotal),
     availabilityAdjustment,
+    sustainedBonus,
     gamesPlayed,
     bonusTotal: round2(bonusTotal),
     production,
@@ -673,18 +713,32 @@ export interface RsoRankingEntry {
  * Rank a set of players within a single position by RSO score (desc).
  * Pass the full player list; non-matching positions and free agents are
  * filtered out. Ties break by player id for stable ordering.
+ *
+ * `onePerTeam` keeps only each team's highest-scoring player — used for QB so
+ * the board is one starter per team (32 teams → 32 QBs), never a team twice.
  */
 export function rankByRso(
   players: Player[],
   position: Position,
+  options: { onePerTeam?: boolean } = {},
 ): RsoRankingEntry[] {
-  return players
+  let ranked = players
     .filter((p) => p.position === position && !p.isFreeAgent)
     .map((p) => ({ player: p, score: scorePlayer(p).total }))
-    .sort((a, b) => b.score - a.score || a.player.id.localeCompare(b.player.id))
-    .map(({ player, score }, i) => ({
-      playerId: player.id,
-      rank: i + 1,
-      score,
-    }));
+    .sort((a, b) => b.score - a.score || a.player.id.localeCompare(b.player.id));
+
+  if (options.onePerTeam) {
+    const seen = new Set<string>();
+    ranked = ranked.filter(({ player }) => {
+      if (seen.has(player.teamId)) return false;
+      seen.add(player.teamId);
+      return true;
+    });
+  }
+
+  return ranked.map(({ player, score }, i) => ({
+    playerId: player.id,
+    rank: i + 1,
+    score,
+  }));
 }

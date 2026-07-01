@@ -219,7 +219,10 @@ const RSO_RANKINGS: Record<Position, Ranking> = Object.fromEntries(
       position,
       source: "rso" as RankingSource,
       week: CURRENT_WEEK,
-      entries: rankByRso(PLAYERS, position).slice(0, RANKED_SPOTS),
+      entries: rankByRso(PLAYERS, position, {
+        // QBs: one starter per team, so no team appears twice on the board.
+        onePerTeam: position === "QB",
+      }).slice(0, RANKED_SPOTS),
     },
   ]),
 ) as Record<Position, Ranking>;
