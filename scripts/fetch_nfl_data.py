@@ -202,13 +202,27 @@ def build_teams():
     return out
 
 
+def player_key(r):
+    """Stable id for a roster row. Prefer gsis_id (matches the stats feed); fall
+    back to another id so rookies who haven't been assigned a gsis_id yet (e.g.
+    fresh draftees) are still included instead of silently dropped."""
+    gid = r.get("gsis_id")
+    if gid:
+        return gid
+    for alt in ("esb_id", "smart_id", "gsis_it_id", "sportradar_id"):
+        v = r.get(alt)
+        if v:
+            return f"it-{v}"
+    return None
+
+
 def roster_map(season):
-    """gsis_id -> latest roster row (jersey, age, exp, names, headshot, status, team)."""
+    """player id -> latest roster row (jersey, age, exp, names, headshot, status, team)."""
     rmap = {}
     for r in nfl.load_rosters(seasons=[season]).iter_rows(named=True):
-        gid = r.get("gsis_id")
-        if gid and gid not in rmap:
-            rmap[gid] = r
+        pid = player_key(r)
+        if pid and pid not in rmap:
+            rmap[pid] = r
     return rmap
 
 
