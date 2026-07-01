@@ -173,6 +173,19 @@ export default async function PlayerPage({
                   </span>
                 </li>
               ))}
+              {score.availabilityAdjustment > 0 && (
+                <li className="flex justify-between gap-2 border-t border-silver pt-1">
+                  <span className="text-silver-deep">
+                    Availability{" "}
+                    <span className="text-xs">
+                      (prorated to {17} games · played {score.gamesPlayed})
+                    </span>
+                  </span>
+                  <span className="font-semibold tabular-nums text-emerald-700">
+                    +{score.availabilityAdjustment}
+                  </span>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -180,7 +193,7 @@ export default async function PlayerPage({
             <h3 className="mb-2 flex items-center justify-between text-sm font-bold uppercase tracking-wide text-silver-deep">
               Bonuses
               <span className="tabular-nums text-ink">
-                +{(score.total - score.productionSubtotal).toFixed(1)}
+                +{score.bonusTotal.toFixed(1)}
               </span>
             </h3>
             {score.bonuses.length === 0 ? (

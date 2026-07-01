@@ -540,9 +540,20 @@ export interface RsoScore {
   position: Position;
   total: number;
   productionSubtotal: number;
+  // Points added by prorating production to a full season, so players who
+  // missed games to injury aren't penalized for lost volume. 0 for full-season
+  // (or zero-production) players.
+  availabilityAdjustment: number;
+  gamesPlayed: number;
+  bonusTotal: number;
   production: ProductionLine[];
   bonuses: FiredBonus[];
 }
+
+// A full slate. Production is prorated to this pace based on games played,
+// capped so a tiny sample can't be inflated into elite volume.
+const FULL_SEASON_GAMES = 17;
+const MAX_AVAILABILITY_BOOST = 1.7; // fully protects players who logged 10+ games
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -624,11 +635,29 @@ export function scorePlayer(player: Player): RsoScore {
 
   const bonusTotal = bonuses.reduce((s, b) => s + b.points, 0);
 
+  // Availability: prorate positive production to a full-season pace so injured
+  // players keep their per-game value. Capped so small samples aren't inflated.
+  const gamesPlayed = Math.min(
+    Math.max(stats.gamesPlayed ?? 0, 0),
+    FULL_SEASON_GAMES,
+  );
+  let availabilityAdjustment = 0;
+  if (gamesPlayed > 0 && productionSubtotal > 0) {
+    const boost = Math.min(
+      FULL_SEASON_GAMES / gamesPlayed,
+      MAX_AVAILABILITY_BOOST,
+    );
+    availabilityAdjustment = round2(productionSubtotal * (boost - 1));
+  }
+
   return {
     playerId: player.id,
     position: player.position,
-    total: round2(productionSubtotal + bonusTotal),
+    total: round2(productionSubtotal + availabilityAdjustment + bonusTotal),
     productionSubtotal: round2(productionSubtotal),
+    availabilityAdjustment,
+    gamesPlayed,
+    bonusTotal: round2(bonusTotal),
     production,
     bonuses,
   };

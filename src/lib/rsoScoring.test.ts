@@ -99,6 +99,37 @@ describe("RSO scoring engine", () => {
     expect(rating?.points).toBe(4.5);
   });
 
+  it("prorates production to a full season for players who missed games", () => {
+    // production = 3000*.025 + 20*4 = 75 + 80 = 155
+    const hurt = makePlayer("QB", {
+      passYds: 3000,
+      passTD: 20,
+      gamesPlayed: 10,
+    });
+    const score = scorePlayer(hurt);
+    expect(score.productionSubtotal).toBe(155);
+    // boost = min(17/10, 1.7) = 1.7 -> adjustment = 155 * (1.7 - 1) = 108.5
+    expect(score.availabilityAdjustment).toBe(108.5);
+    expect(score.gamesPlayed).toBe(10);
+    expect(score.total).toBe(
+      Math.round(
+        (score.productionSubtotal +
+          score.availabilityAdjustment +
+          score.bonusTotal) *
+          100,
+      ) / 100,
+    );
+  });
+
+  it("does not adjust a full-season player's production", () => {
+    const full = makePlayer("QB", {
+      passYds: 3000,
+      passTD: 20,
+      gamesPlayed: 17,
+    });
+    expect(scorePlayer(full).availabilityAdjustment).toBe(0);
+  });
+
   it("awards no bonus when a metric misses every tier", () => {
     const qb = makePlayer("QB", {
       passYds: 3000,
