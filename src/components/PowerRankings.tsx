@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
-import { getPowerRanking, getTeam, type PowerSource } from "@/data/api";
+import {
+  getPowerRanking,
+  getTeam,
+  type PowerRankingEntry,
+  type PowerSource,
+} from "@/data/api";
+import { fetchMediaPowerRanking } from "@/data/userData";
 import TeamLogo from "./TeamLogo";
 
 const SOURCES: { key: PowerSource; label: string }[] = [
@@ -36,7 +42,25 @@ function Movement({ value }: { value: number }) {
 // team power rankings, with weekly movement arrows. Team logos/names clickable.
 export default function PowerRankings() {
   const [source, setSource] = useState<PowerSource>("rso");
-  const entries = getPowerRanking(source);
+  // Editor-set Media order from Supabase (null → use the mock).
+  const [mediaOverride, setMediaOverride] = useState<PowerRankingEntry[] | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMediaPowerRanking().then((r) => {
+      if (!cancelled) setMediaOverride(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const entries =
+    source === "media" && mediaOverride
+      ? mediaOverride
+      : getPowerRanking(source);
 
   return (
     <div>

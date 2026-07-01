@@ -6,6 +6,7 @@
 import { createClient } from "@/utils/supabase/client";
 import { isSupabaseConfigured } from "@/utils/supabase/config";
 import { getPlayersByPosition, getRankings } from "./api";
+import type { PowerRankingEntry } from "./api";
 import { CURRENT_WEEK } from "./season";
 import type { Position, RankingEntry } from "./types";
 
@@ -64,6 +65,54 @@ export async function fetchFanRanking(
   const voted = (data ?? []) as { player_id: string; points: number }[];
   if (voted.length === 0) return [];
   return buildFanEntries(position, voted);
+}
+
+/**
+ * The editor-set Media ranking for a position, saved from the admin editor.
+ *   null → Supabase off, or no ranking saved yet (caller uses the mock).
+ *   [..] → the saved order, top to bottom.
+ */
+export async function fetchMediaRanking(
+  position: Position,
+): Promise<RankingEntry[] | null> {
+  if (!isSupabaseConfigured) return null;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("media_rankings")
+    .select("player_ids")
+    .eq("position", position)
+    .eq("week", CURRENT_WEEK)
+    .maybeSingle();
+  if (error || !data) return null;
+  const ids = (data.player_ids as string[]) ?? [];
+  if (ids.length === 0) return null;
+  return ids.map((id, i) => ({ playerId: id, rank: i + 1, score: ids.length - i }));
+}
+
+/**
+ * The editor-set Media power ranking, saved from the admin editor.
+ *   null → Supabase off, or none saved yet (caller uses the mock).
+ *   [..] → the saved team order, top to bottom.
+ */
+export async function fetchMediaPowerRanking(): Promise<
+  PowerRankingEntry[] | null
+> {
+  if (!isSupabaseConfigured) return null;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("media_power_rankings")
+    .select("team_ids")
+    .eq("week", CURRENT_WEEK)
+    .maybeSingle();
+  if (error || !data) return null;
+  const ids = (data.team_ids as string[]) ?? [];
+  if (ids.length === 0) return null;
+  return ids.map((teamId, i) => ({
+    teamId,
+    rank: i + 1,
+    score: ids.length - i,
+    movement: 0,
+  }));
 }
 
 /** The signed-in user's existing ballot for a position, if any. */

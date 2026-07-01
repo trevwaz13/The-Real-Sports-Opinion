@@ -11,6 +11,7 @@ import RankingTable from "@/components/RankingTable";
 import SourceTabs from "@/components/SourceTabs";
 import FanVoteBar from "@/components/rankings/FanVoteBar";
 import FanRankingList from "@/components/rankings/FanRankingList";
+import MediaRankingList from "@/components/rankings/MediaRankingList";
 
 function RankingsView() {
   const params = useSearchParams();
@@ -87,6 +88,12 @@ function RankingsView() {
             highlightId={highlightId}
           />
         </>
+      ) : source === "media" ? (
+        <MediaRankingList
+          key={position}
+          position={position}
+          highlightId={highlightId}
+        />
       ) : (
         <RankingTable
           position={position}
