@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RSO — The Real Sports Opinion
 
-## Getting Started
+A clean, mobile-first NFL stats, rankings, and fantasy website built with **Next.js (App Router) + TypeScript + Tailwind**. It features the **RSO Official scoring engine** — a data-driven system that ranks players and teams from real 2025 NFL data.
 
-First, run the development server:
+## Features
+
+- **Home dashboard** — live-style scores & matchups with a **week selector (1–18)**, embedded player rankings, stat leaders, standings, news/free agency, and fantasy modules.
+- **Player Rankings** (`/rankings`) — Media · **RSO Official** · Fan, per position, with cross-source ranks and gold/silver/bronze medals.
+- **RSO scoring engine** — a pure, data-driven engine (`src/lib/rsoScoring.ts`) that scores players by production points + tiered bonuses, with a full breakdown on each player page. Unit-tested.
+- **Stats** (`/stats`) — full sortable/searchable stat tables per position with hover tooltips.
+- **Standings** (`/standings`) — scope by NFL / conference / division, plus a data-driven **team power ranking** (win% + strength of schedule) with movement arrows.
+- **Game detail** (`/game/[id]`) — real box scores, an animated field with play-by-play, and per-team leaders.
+- **Team & player pages** — real rosters, season + career stats, color-accented headers, and the RSO score breakdown.
+- **Accounts** (Supabase) — email/Google auth, profiles, an admin editor for Media rankings, and account-based fan voting with live aggregation.
+
+## Real data
+
+Teams, players, stats, standings, games, and box scores are pulled from **[nflverse](https://github.com/nflverse) via [nflreadpy](https://github.com/nflverse/nflreadpy)** (2025 season). To refresh:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+python3 scripts/fetch_nfl_data.py   # writes src/data/real/*.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Every page reads through `src/data/api.ts`, so the data source is swappable in one folder.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Getting started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev        # http://localhost:3000
+```
 
-## Learn More
+Other scripts: `npm run build`, `npm test` (Vitest), `npm run lint`.
 
-To learn more about Next.js, take a look at the following resources:
+## Accounts (Supabase)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Auth/accounts are optional — the site runs fully on real/mock data without them and degrades gracefully. To enable, follow **[docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)**: create a Supabase project, add your keys to `.env.local` (see `.env.local.example`), and run `supabase/schema.sql`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tech
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 · React 19 · TypeScript · Tailwind v4 · Zustand · lucide-react · Supabase (`@supabase/ssr`) · Vitest.
