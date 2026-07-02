@@ -1,44 +1,68 @@
 @import "tailwindcss";
 
 /*
- * RSO design tokens. Defined here (Tailwind v4 has no tailwind.config.js);
- * these generate utilities like bg-primary, bg-surface, text-ink,
- * border-silver, etc. The default palette is clean and bright; the dark
- * overrides below mirror every token so the whole UI follows the system color
- * scheme automatically.
+ * RSO design tokens. The raw palette lives in --rso-* variables that are
+ * swapped at runtime (light / dark / system); @theme inline maps them onto
+ * Tailwind's color tokens so utilities (bg-primary, text-ink, border-silver, …)
+ * follow the active theme automatically.
  */
-@theme {
-  --color-primary: #ffffff; /* page background */
-  --color-surface: #ffffff; /* cards, menus, inputs */
-  --color-silver-light: #e8e8e8; /* hover backgrounds, subtle fills */
-  --color-silver: #c0c0c0; /* borders, dividers */
-  --color-silver-deep: #9a9a9a; /* deep borders, muted text */
-  --color-ink: #0a0a0a; /* text, active fills/underline */
-}
-
-/* Night mode — follows the OS setting via prefers-color-scheme. Only the token
- * values change; every utility (bg-primary, text-ink, border-silver, …) picks
- * these up automatically. `ink` becomes near-white, so text-ink reads light and
- * bg-ink accents pair with text-primary (which is now dark). */
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --color-primary: #0f0f12;
-    --color-surface: #1a1a1f;
-    --color-silver-light: #26262c;
-    --color-silver: #3a3a42;
-    --color-silver-deep: #8b8b93;
-    --color-ink: #f3f3f5;
+    color-scheme: light dark;
+    --rso-primary: #ffffff; /* page background */
+    --rso-surface: #ffffff; /* cards, menus, inputs */
+    --rso-silver-light: #e8e8e8; /* hover backgrounds, subtle fills */
+    --rso-silver: #c0c0c0; /* borders, dividers */
+    --rso-silver-deep: #9a9a9a; /* deep borders, muted text */
+    --rso-ink: #0a0a0a; /* text, active fills/underline */
+  }
+
+  /* Night mode via the system setting (used when no explicit choice is saved). */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --rso-primary: #0f0f12;
+      --rso-surface: #1a1a1f;
+      --rso-silver-light: #26262c;
+      --rso-silver: #3a3a42;
+      --rso-silver-deep: #8b8b93;
+      --rso-ink: #f3f3f5;
+    }
+  }
+
+  /* Explicit choice from Settings — applied as a class on <html>, beats the
+     system preference on specificity. */
+  :root.theme-light {
+    color-scheme: light;
+    --rso-primary: #ffffff;
+    --rso-surface: #ffffff;
+    --rso-silver-light: #e8e8e8;
+    --rso-silver: #c0c0c0;
+    --rso-silver-deep: #9a9a9a;
+    --rso-ink: #0a0a0a;
+  }
+  :root.theme-dark {
+    color-scheme: dark;
+    --rso-primary: #0f0f12;
+    --rso-surface: #1a1a1f;
+    --rso-silver-light: #26262c;
+    --rso-silver: #3a3a42;
+    --rso-silver-deep: #8b8b93;
+    --rso-ink: #f3f3f5;
   }
 }
 
-:root {
-  color-scheme: light dark;
-  --background: var(--color-primary);
-  --foreground: var(--color-ink);
+@theme inline {
+  --color-primary: var(--rso-primary);
+  --color-surface: var(--rso-surface);
+  --color-silver-light: var(--rso-silver-light);
+  --color-silver: var(--rso-silver);
+  --color-silver-deep: var(--rso-silver-deep);
+  --color-ink: var(--rso-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-primary);
+  color: var(--color-ink);
   font-family: var(--font-sans), system-ui, -apple-system, Arial, sans-serif;
 }

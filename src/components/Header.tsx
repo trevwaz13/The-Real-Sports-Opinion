@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, Settings, X } from "lucide-react";
 import RsoLogo from "./RsoLogo";
 import AuthButton from "./AuthButton";
 import { NAV_ITEMS, isActive } from "@/lib/nav";
@@ -98,8 +98,18 @@ export default function Header() {
           />
         </nav>
 
-        {/* Account menu / Sign in — top right */}
-        <div className="hidden md:block">
+        {/* Settings + account menu / Sign in — top right */}
+        <div className="hidden items-center gap-1 md:flex">
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            aria-current={isActive(pathname, "/settings") ? "page" : undefined}
+            className={`rounded-md p-2 transition-colors hover:bg-silver-light hover:text-ink ${
+              isActive(pathname, "/settings") ? "text-ink" : "text-silver-deep"
+            }`}
+          >
+            <Settings size={18} />
+          </Link>
           <AuthButton />
         </div>
 
@@ -138,6 +148,22 @@ export default function Header() {
                 </li>
               );
             })}
+            <li>
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                aria-current={
+                  isActive(pathname, "/settings") ? "page" : undefined
+                }
+                className={`block py-2 text-base font-black ${
+                  isActive(pathname, "/settings")
+                    ? "text-ink underline decoration-2 underline-offset-4"
+                    : "text-silver-deep hover:text-ink"
+                }`}
+              >
+                Settings
+              </Link>
+            </li>
             <li className="mt-2 border-t border-silver pt-3 pb-1">
               <AuthButton onNavigate={() => setMenuOpen(false)} />
             </li>

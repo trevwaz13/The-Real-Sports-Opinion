@@ -33,9 +33,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${inter.variable} ${frankRuhlLibre.variable} h-full antialiased`}
     >
       <body className="flex min-h-screen flex-col bg-primary text-ink">
+        {/* Apply the saved theme before paint so there's no flash of the wrong
+            palette. No stored choice → follow the system (prefers-color-scheme). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('rso-theme');if(t==='dark')document.documentElement.classList.add('theme-dark');else if(t==='light')document.documentElement.classList.add('theme-light');}catch(e){}})();`,
+          }}
+        />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
