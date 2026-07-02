@@ -40,10 +40,8 @@ export default function HomeStandings() {
 
   return (
     <div>
-      <div className="mb-2 flex gap-1.5">{PRIMARY.map(chip)}</div>
-      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
-        {DIVISIONS.map(chip)}
-      </div>
+      <div className="mb-2 flex flex-wrap gap-1.5">{PRIMARY.map(chip)}</div>
+      <div className="mb-3 flex flex-wrap gap-1.5">{DIVISIONS.map(chip)}</div>
       <StandingsTable scope={scope} compact />
     </div>
   );

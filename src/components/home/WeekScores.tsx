@@ -20,7 +20,7 @@ export default function WeekScores({
 
   return (
     <div>
-      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {weeks.map((w) => {
           const active = w === week;
           return (

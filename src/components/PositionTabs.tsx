@@ -17,7 +17,7 @@ export default function PositionTabs({
     <div
       role="tablist"
       aria-label="Position"
-      className={`flex gap-1.5 overflow-x-auto pb-1 ${className}`}
+      className={`flex flex-wrap gap-1.5 ${className}`}
     >
       {POSITIONS.map((position) => {
         const active = position === value;

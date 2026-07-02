@@ -67,19 +67,19 @@ export default function RankingTable({
             <li
               key={entry.playerId}
               id={`rank-${player.id}`}
-              className={`flex items-center gap-3 px-3 py-2 sm:px-4 ${
+              className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-4 sm:py-2 ${
                 highlightId === player.id
                   ? "bg-silver-light ring-2 ring-inset ring-ink/30"
                   : "hover:bg-silver-light/50"
               }`}
             >
-              <span className="w-6 shrink-0 text-center text-sm font-bold tabular-nums text-silver-deep">
+              <span className="order-1 w-6 shrink-0 text-center text-sm font-bold tabular-nums text-silver-deep">
                 {entry.rank}
               </span>
 
               <Link
                 href={`/player/${player.id}`}
-                className="shrink-0"
+                className="order-2 shrink-0"
                 aria-label={player.name}
               >
                 <PlayerHeadshot
@@ -89,8 +89,8 @@ export default function RankingTable({
                 />
               </Link>
 
-              {/* Name / team — fixed-ish width so the stat strip can fill the rest. */}
-              <div className="w-32 shrink-0 sm:w-44">
+              {/* Name / team — grows on mobile, fixed width beside the stat strip on desktop. */}
+              <div className="order-3 min-w-0 flex-1 sm:w-44 sm:flex-none">
                 <div className="flex items-center gap-1.5">
                   <Link
                     href={`/player/${player.id}`}
@@ -110,8 +110,8 @@ export default function RankingTable({
                 </span>
               </div>
 
-              {/* Position stat line — centered, evenly spread, divider lines. */}
-              <div className="flex flex-1 items-center">
+              {/* Position stat line — full-width own row on mobile, inline on desktop. */}
+              <div className="order-5 flex basis-full items-center sm:order-4 sm:basis-auto sm:flex-1">
                 {columns.map((col) => {
                   const value = player.seasonStats[col.key];
                   if (col.hideIfZero && (!value || value === 0)) return null;
@@ -132,7 +132,7 @@ export default function RankingTable({
               </div>
 
               {/* Cross-source ranks (the two sources not currently selected). */}
-              <div className="flex shrink-0 pl-2">
+              <div className="order-4 flex shrink-0 sm:order-5 sm:pl-2">
                 {otherSources.map((s) => {
                   const rank = rankMaps[s].get(player.id);
                   return (
@@ -140,7 +140,7 @@ export default function RankingTable({
                       key={s}
                       href={`/rankings?source=${s}&position=${position}&player=${player.id}`}
                       aria-label={`View ${player.name} in ${SOURCE_SHORT[s]} rankings`}
-                      className="border-l border-silver px-2.5 text-center transition-colors first:border-l-0 hover:bg-silver-light sm:px-3"
+                      className="border-l border-silver px-2 text-center transition-colors first:border-l-0 hover:bg-silver-light sm:px-3"
                     >
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-silver-deep">
                         {SOURCE_SHORT[s]}

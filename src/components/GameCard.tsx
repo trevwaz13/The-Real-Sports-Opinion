@@ -186,9 +186,9 @@ export default function GameCard({ game }: { game: Game }) {
         </div>
       )}
 
-      {/* Both teams' leaders */}
+      {/* Both teams' leaders — hidden on phones to keep the scores list short. */}
       {showScore && leaders && (
-        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-silver pt-2">
+        <div className="mt-3 hidden grid-cols-2 gap-3 border-t border-silver pt-2 sm:grid">
           <LeaderColumn
             teamAbbr={away?.abbreviation ?? game.awayTeamId}
             leaders={leaders.away}
@@ -201,7 +201,7 @@ export default function GameCard({ game }: { game: Game }) {
       )}
 
       {!showScore && (
-        <div className="mt-2 border-t border-silver pt-2 text-xs text-silver-deep">
+        <div className="mt-2 hidden border-t border-silver pt-2 text-xs text-silver-deep sm:block">
           ML {away?.abbreviation} {formatOdds(game.moneyline.away)} ·{" "}
           {home?.abbreviation} {formatOdds(game.moneyline.home)}
         </div>

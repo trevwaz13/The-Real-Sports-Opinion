@@ -31,7 +31,7 @@ export default function StandingsTable({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-silver">
-      <table className="w-full min-w-[420px] text-sm">
+      <table className="w-full min-w-[300px] text-sm sm:min-w-[420px]">
         <thead>
           <tr className="border-b border-silver text-xs uppercase text-silver-deep">
             <th className="px-3 py-2 text-left font-semibold">Team</th>
@@ -39,8 +39,12 @@ export default function StandingsTable({
             <th className="px-2 py-2 text-center font-semibold">L</th>
             <th className="px-2 py-2 text-center font-semibold">T</th>
             <th className="px-2 py-2 text-center font-semibold">PCT</th>
-            <th className="px-2 py-2 text-center font-semibold">PF</th>
-            <th className="px-2 py-2 text-center font-semibold">PA</th>
+            <th className="hidden px-2 py-2 text-center font-semibold sm:table-cell">
+              PF
+            </th>
+            <th className="hidden px-2 py-2 text-center font-semibold sm:table-cell">
+              PA
+            </th>
             <th className="px-2 py-2 text-center font-semibold">DIFF</th>
             {!compact && (
               <>
@@ -84,10 +88,10 @@ export default function StandingsTable({
                 {team.record.ties}
               </td>
               <td className="px-2 py-2 text-center tabular-nums">{pct(team)}</td>
-              <td className="px-2 py-2 text-center tabular-nums">
+              <td className="hidden px-2 py-2 text-center tabular-nums sm:table-cell">
                 {team.pointsFor}
               </td>
-              <td className="px-2 py-2 text-center tabular-nums">
+              <td className="hidden px-2 py-2 text-center tabular-nums sm:table-cell">
                 {team.pointsAgainst}
               </td>
               <td
