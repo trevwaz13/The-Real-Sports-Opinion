@@ -37,7 +37,7 @@ export default function StandingsScopeSelector({
         onClick={() => onChange(s)}
         className={`shrink-0 rounded-full border px-3 py-1 text-sm font-semibold transition-colors ${
           active
-            ? "border-ink bg-ink text-white"
+            ? "border-ink bg-ink text-primary"
             : "border-silver text-silver-deep hover:bg-silver-light hover:text-ink"
         }`}
       >
@@ -54,7 +54,7 @@ export default function StandingsScopeSelector({
           aria-label="Select standings view"
           value={value}
           onChange={(e) => onChange(e.target.value as StandingsScope)}
-          className="appearance-none rounded-md border border-silver bg-white py-1.5 pl-3 pr-9 text-sm font-semibold text-ink outline-none transition-colors hover:border-silver-deep focus:border-silver-deep"
+          className="appearance-none rounded-md border border-silver bg-surface py-1.5 pl-3 pr-9 text-sm font-semibold text-ink outline-none transition-colors hover:border-silver-deep focus:border-silver-deep"
         >
           {ALL.map((s) => (
             <option key={s} value={s}>

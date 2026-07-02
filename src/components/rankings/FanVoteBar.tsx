@@ -76,7 +76,7 @@ export default function FanVoteBar({ position }: { position: Position }) {
         <button
           type="button"
           onClick={handleVote}
-          className="inline-flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-sm font-bold text-white hover:opacity-90"
+          className="inline-flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-sm font-bold text-primary hover:opacity-90"
         >
           <Vote size={16} />
           Cast your ballot

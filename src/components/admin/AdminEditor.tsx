@@ -227,7 +227,7 @@ export default function AdminEditor() {
               type="button"
               onClick={save}
               disabled={saving || order.length === 0}
-              className="rounded-md bg-ink px-5 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+              className="rounded-md bg-ink px-5 py-2 text-sm font-bold text-primary hover:opacity-90 disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save ranking"}
             </button>

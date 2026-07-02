@@ -84,7 +84,7 @@ export default function StatsPage() {
             </span>
           </div>
           <div className="flex gap-3 pb-2">
-            <span className="rounded-full border border-ink bg-ink px-3 py-0.5 text-xs font-bold text-white">
+            <span className="rounded-full border border-ink bg-ink px-3 py-0.5 text-xs font-bold text-primary">
               {STATS_SEASON_YEAR}
             </span>
           </div>
@@ -138,7 +138,7 @@ export default function StatsPage() {
                 const team = getTeam(player.teamId);
                 return (
                   <tr key={player.id} className="hover:bg-silver-light/40">
-                    <td className="sticky left-0 z-10 bg-white px-3 py-2">
+                    <td className="sticky left-0 z-10 bg-primary px-3 py-2">
                       <div className="flex items-center gap-2">
                         <Link href={`/player/${player.id}`} className="shrink-0">
                           <PlayerHeadshot

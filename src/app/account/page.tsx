@@ -48,7 +48,7 @@ export default async function AccountPage() {
             label="Role"
             value={
               isAdmin ? (
-                <span className="rounded bg-ink px-1.5 py-0.5 text-xs font-bold text-white">
+                <span className="rounded bg-ink px-1.5 py-0.5 text-xs font-bold text-primary">
                   ADMIN
                 </span>
               ) : (
@@ -76,7 +76,7 @@ export default async function AccountPage() {
           <form action={signOut}>
             <button
               type="submit"
-              className="rounded-md bg-ink px-4 py-2 text-sm font-bold text-white hover:opacity-90"
+              className="rounded-md bg-ink px-4 py-2 text-sm font-bold text-primary hover:opacity-90"
             >
               Sign out
             </button>

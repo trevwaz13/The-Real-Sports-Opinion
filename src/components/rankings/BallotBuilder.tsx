@@ -58,7 +58,7 @@ export default function BallotBuilder({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-surface shadow-xl">
         <div className="flex items-center justify-between border-b border-silver px-4 py-3">
           <h2 className="text-lg font-bold text-ink">
             {shared ? "Ballot submitted" : `Your ${position} ballot`}
@@ -94,7 +94,7 @@ export default function BallotBuilder({
                   navigator.clipboard?.writeText(shareUrl);
                   setCopied(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-sm font-bold text-white hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-sm font-bold text-primary hover:opacity-90"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Copied" : "Copy"}
@@ -123,7 +123,7 @@ export default function BallotBuilder({
                   }}
                   className={`rounded-full border px-3 py-1 text-sm font-semibold ${
                     ballotType === t
-                      ? "border-ink bg-ink text-white"
+                      ? "border-ink bg-ink text-primary"
                       : "border-silver text-silver-deep hover:bg-silver-light"
                   }`}
                 >
@@ -251,7 +251,7 @@ export default function BallotBuilder({
                 type="button"
                 onClick={onSubmit}
                 disabled={submitting || ballot.length === 0}
-                className="rounded-md bg-ink px-5 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+                className="rounded-md bg-ink px-5 py-2 text-sm font-bold text-primary hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? "Submitting…" : "Submit ballot"}
               </button>

@@ -78,7 +78,7 @@ export default async function LoginPage({
               </label>
               <button
                 type="submit"
-                className="w-full rounded-md bg-ink py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="w-full rounded-md bg-ink py-2 text-sm font-bold text-primary transition-opacity hover:opacity-90"
               >
                 Sign in
               </button>

@@ -65,7 +65,7 @@ export default function AuthButton({ onNavigate }: { onNavigate?: () => void }) 
         <ChevronDown size={14} />
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-md border border-silver bg-white shadow-lg">
+        <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-md border border-silver bg-surface shadow-lg">
           <Link
             href="/account"
             onClick={() => {

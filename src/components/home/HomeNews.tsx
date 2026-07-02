@@ -106,7 +106,7 @@ export default function HomeNews() {
               onClick={() => setFaScope(s)}
               className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${
                 faScope === s
-                  ? "border-ink bg-ink text-white"
+                  ? "border-ink bg-ink text-primary"
                   : "border-silver text-silver-deep hover:bg-silver-light hover:text-ink"
               }`}
             >

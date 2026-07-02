@@ -38,7 +38,7 @@ export default function HomeStats() {
             onClick={() => setMode(m)}
             className={`rounded px-3 py-1 text-sm font-semibold transition-colors ${
               mode === m
-                ? "bg-ink text-white"
+                ? "bg-ink text-primary"
                 : "text-silver-deep hover:text-ink"
             }`}
           >
