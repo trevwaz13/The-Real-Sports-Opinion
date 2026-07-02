@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { Game } from "@/data/types";
 import GameCard from "../GameCard";
 
@@ -20,24 +21,23 @@ export default function WeekScores({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {weeks.map((w) => {
-          const active = w === week;
-          return (
-            <button
-              key={w}
-              type="button"
-              onClick={() => setWeek(w)}
-              className={`shrink-0 rounded-full border px-3 py-1 text-sm font-semibold transition-colors ${
-                active
-                  ? "border-ink bg-ink text-white"
-                  : "border-silver text-silver-deep hover:bg-silver-light hover:text-ink"
-              }`}
-            >
-              Wk {w}
-            </button>
-          );
-        })}
+      <div className="relative mb-3 inline-block">
+        <select
+          aria-label="Select week"
+          value={week}
+          onChange={(e) => setWeek(Number(e.target.value))}
+          className="appearance-none rounded-md border border-silver bg-white py-1.5 pl-3 pr-9 text-sm font-semibold text-ink outline-none transition-colors hover:border-silver-deep focus:border-silver-deep"
+        >
+          {weeks.map((w) => (
+            <option key={w} value={w}>
+              Week {w}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={16}
+          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-silver-deep"
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
