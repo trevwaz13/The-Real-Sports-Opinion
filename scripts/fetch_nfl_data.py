@@ -15,7 +15,16 @@ import os
 import polars as pl
 import nflreadpy as nfl
 
-SEASON = 2026         # the season being played
+def default_season(today=None):
+    """The NFL season currently in play. A season spans two calendar years, so
+    anything before August belongs to the previous year's season (the 2026
+    season runs Sep 2026 through Feb 2027)."""
+    today = today or dt.date.today()
+    return today.year if today.month >= 8 else today.year - 1
+
+
+# Override with RSO_SEASON=2025 to backfill or pin a season.
+SEASON = int(os.environ.get("RSO_SEASON") or default_season())
 CAREER_FROM = 2015
 OUT = os.path.join(os.path.dirname(__file__), "..", "src", "data", "real")
 

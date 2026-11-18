@@ -1,0 +1,4 @@
+# Data pipeline dependencies (scripts/fetch_nfl_data.py).
+# nflreadpy pulls the nflverse releases; polars is its dataframe engine.
+nflreadpy>=0.1.5,<1.0
+polars>=1.41,<2.0

@@ -1,0 +1,84 @@
+name: Refresh NFL data
+
+# Pulls the latest nflverse data into src/data/real/ and commits it.
+# Runs Tuesday mornings, after Monday Night Football has been processed, and
+# can be triggered by hand for a specific season.
+on:
+  schedule:
+    - cron: "0 11 * * 2" # Tuesdays, 11:00 UTC (6am ET)
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Season to fetch (blank = current)"
+        required: false
+        type: string
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install data dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Fetch the latest data
+        env:
+          RSO_SEASON: ${{ inputs.season }}
+        run: python3 scripts/fetch_nfl_data.py
+
+      # season.json's timestamp moves every run, so this ignores a diff that
+      # is nothing but that timestamp (bye weeks, the offseason).
+      - name: Check for real changes
+        run: |
+          git diff --stat -- src/data/real/
+          echo "changed=$(python3 scripts/data_changed.py)" >> "$GITHUB_ENV"
+
+      # The data is typed and imported directly, so a shape change upstream
+      # would break the site. Build before committing anything.
+      - uses: actions/setup-node@v4
+        if: env.changed == 'yes'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify the site still builds
+        if: env.changed == 'yes'
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+          npm run build
+
+      - name: Commit the refreshed data
+        if: env.changed == 'yes'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/real/
+          WEEK=$(python3 -c "import json;d=json.load(open('src/data/real/season.json'));print(f\"{d['season']} week {d['currentWeek']}\")")
+          git commit -m "Refresh NFL data ($WEEK)"
+          git push
+
+      - name: Report
+        run: |
+          if [ "$changed" = "yes" ]; then
+            echo "Committed refreshed data." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No data changes; nothing to commit." >> "$GITHUB_STEP_SUMMARY"
+          fi
+        env:
+          changed: ${{ env.changed }}

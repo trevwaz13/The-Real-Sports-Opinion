@@ -58,6 +58,11 @@ upcoming matchups — not hand-written copy.
 Every page reads through `src/data/api.ts`, so swapping the data source is a
 one-folder change.
 
+A [GitHub Action](.github/workflows/refresh-data.yml) reruns the fetch every
+Tuesday morning, verifies the site still builds against the new data, and
+commits it only when something actually changed. The season is detected from
+the calendar, so it rolls over on its own each September.
+
 ![Player page](docs/screenshots/player.jpg)
 
 ## Running it
