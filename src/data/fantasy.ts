@@ -1,98 +1,84 @@
-import { PLAYERS } from "./players";
-import { CURRENT_WEEK } from "./season";
-import type {
-  FantasyPlayerWeek,
-  Player,
-  PlayerStats,
-  WaiverPlayer,
-  WaiverTrend,
-} from "./types";
+import { PLAYERS_BY_ID } from "./players";
+import { CURRENT_WEEK, LAST_COMPLETED_WEEK } from "./season";
+import fantasyData from "./real/fantasy.json";
+import type { FantasyPlayerWeek, WaiverPlayer, WaiverTrend } from "./types";
 
-// Weekly fantasy points are derived from each player's per-game season
-// production plus a stable per-week jitter, so "highest scorers of the week"
-// looks realistic and is consistent across reloads.
+// Real PPR fantasy points per player per week, straight from the weekly
+// nflverse box scores (see scripts/fetch_nfl_data.py). Keyed by week number.
 
-function hashString(input: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+const BY_WEEK = fantasyData as Record<string, Record<string, number>>;
+
+/** Every scoring player in a given week, highest first. */
+export function fantasyWeek(week: number): FantasyPlayerWeek[] {
+  const rows = BY_WEEK[String(week)] ?? {};
+  return Object.entries(rows)
+    .map(([playerId, fantasyPoints]) => {
+      const player = PLAYERS_BY_ID[playerId];
+      return player
+        ? { playerId, position: player.position, week, fantasyPoints }
+        : null;
+    })
+    .filter((row): row is FantasyPlayerWeek => row !== null)
+    .sort((a, b) => b.fantasyPoints - a.fantasyPoints);
+}
+
+/** Weeks that have scoring data, newest first. */
+export const SCORED_WEEKS: number[] = Object.keys(BY_WEEK)
+  .map(Number)
+  .sort((a, b) => b - a);
+
+/** The most recent week with real scoring (what the home module shows). */
+export const FANTASY_WEEK_NUMBER = SCORED_WEEKS[0] ?? LAST_COMPLETED_WEEK ?? CURRENT_WEEK;
+
+export const FANTASY_WEEK: FantasyPlayerWeek[] = fantasyWeek(FANTASY_WEEK_NUMBER);
+
+function average(values: number[]): number {
+  return values.length
+    ? values.reduce((sum, v) => sum + v, 0) / values.length
+    : 0;
+}
+
+// Waiver watch: who is actually heating up. A player's last three scored weeks
+// against their season average, so the list is real production rather than an
+// invented "rostered %".
+const RECENT_WEEKS = SCORED_WEEKS.slice(0, 3);
+
+export const WAIVERS: WaiverPlayer[] = (() => {
+  const seasonPoints = new Map<string, number[]>();
+  for (const week of SCORED_WEEKS) {
+    for (const [playerId, points] of Object.entries(BY_WEEK[String(week)] ?? {})) {
+      const list = seasonPoints.get(playerId) ?? [];
+      list.push(points);
+      seasonPoints.set(playerId, list);
+    }
   }
-  return h >>> 0;
-}
 
-function perGame(stats: PlayerStats, key: keyof PlayerStats): number {
-  const total = stats[key] ?? 0;
-  const games = stats.gamesPlayed || 17;
-  return total / games;
-}
+  const rows: WaiverPlayer[] = [];
+  for (const [playerId, points] of seasonPoints) {
+    const player = PLAYERS_BY_ID[playerId];
+    if (!player || player.isFreeAgent) continue;
+    if (!["QB", "RB", "WR", "TE"].includes(player.position)) continue;
 
-// PPR for offense, common IDP scoring for defense.
-function weeklyPoints(player: Player): number {
-  const s = player.seasonStats;
-  let pts = 0;
+    const recent = RECENT_WEEKS.map((w) => BY_WEEK[String(w)]?.[playerId]).filter(
+      (v): v is number => typeof v === "number",
+    );
+    if (recent.length < 2) continue;
 
-  if (["QB", "RB", "WR", "TE"].includes(player.position)) {
-    pts += perGame(s, "passYds") / 25;
-    pts += perGame(s, "passTD") * 4;
-    pts -= perGame(s, "interceptionsThrown") * 2;
-    pts += perGame(s, "rushYds") / 10;
-    pts += perGame(s, "rushTD") * 6;
-    pts += perGame(s, "receptions") * 1;
-    pts += perGame(s, "recYds") / 10;
-    pts += perGame(s, "recTD") * 6;
-    pts -= perGame(s, "fumbles") * 2;
-  } else {
-    pts += perGame(s, "soloTackles") * 1;
-    pts += perGame(s, "assistedTackles") * 0.5;
-    pts += perGame(s, "sacks") * 2;
-    pts += perGame(s, "tacklesForLoss") * 1;
-    pts += perGame(s, "interceptions") * 6;
-    pts += perGame(s, "passesDefended") * 1;
-    pts += perGame(s, "forcedFumbles") * 2;
-    pts += perGame(s, "fumbleRecoveries") * 2;
-    pts += perGame(s, "defTD") * 6;
-  }
+    const recentPPG = average(recent);
+    const seasonPPG = average(points);
+    if (recentPPG < 8) continue; // not startable, not worth a claim
 
-  // Stable weekly variance around the per-game average.
-  const jitter = ((hashString(player.id + `w${CURRENT_WEEK}`) % 100) - 50) / 12;
-  return Math.max(0, Math.round((pts + jitter) * 10) / 10);
-}
-
-export const FANTASY_WEEK: FantasyPlayerWeek[] = PLAYERS.filter(
-  (p) => !p.isFreeAgent,
-).map((p) => ({
-  playerId: p.id,
-  position: p.position,
-  week: CURRENT_WEEK,
-  fantasyPoints: weeklyPoints(p),
-}));
-
-// Waiver-wire pickups: lower-rostered players trending up/down.
-const TRENDS: WaiverTrend[] = ["up", "up", "up", "flat", "down"];
-
-export const WAIVERS: WaiverPlayer[] = PLAYERS.filter(
-  (p) =>
-    !p.isFreeAgent &&
-    ["RB", "WR", "TE", "QB"].includes(p.position),
-)
-  .map((p) => {
-    const seed = hashString(p.id + "waiver");
-    return {
-      player: p,
-      percentRostered: 5 + (seed % 55),
-      addPct: 2 + (seed % 40),
-      trend: TRENDS[seed % TRENDS.length],
-    };
-  })
-  .filter((w) => w.percentRostered < 55)
-  .sort((a, b) => b.addPct - a.addPct)
-  .slice(0, 16)
-  .map(
-    ({ player, percentRostered, addPct, trend }): WaiverPlayer => ({
-      playerId: player.id,
-      percentRostered,
-      addPct,
+    const delta = recentPPG - seasonPPG;
+    const trend: WaiverTrend = delta > 1.5 ? "up" : delta < -1.5 ? "down" : "flat";
+    rows.push({
+      playerId,
+      recentPPG: Math.round(recentPPG * 10) / 10,
+      seasonPPG: Math.round(seasonPPG * 10) / 10,
       trend,
-    }),
-  );
+    });
+  }
+
+  return rows
+    .sort((a, b) => b.recentPPG - b.seasonPPG - (a.recentPPG - a.seasonPPG))
+    .slice(0, 16);
+})();

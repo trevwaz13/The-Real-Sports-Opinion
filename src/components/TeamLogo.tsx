@@ -1,8 +1,7 @@
 import { getTeam } from "@/data/api";
 
-// Renders a team's real logo (from nflverse), falling back to an on-brand
-// placeholder (abbreviation in a silver circle with a primary-color ring) for
-// unknown teams / free agents.
+// Renders a team's real logo (from nflverse), falling back to the abbreviation
+// in a neutral circle for unknown teams / free agents.
 export default function TeamLogo({
   teamId,
   size = 32,
@@ -24,38 +23,25 @@ export default function TeamLogo({
         width={size}
         height={size}
         loading="lazy"
-        className={`object-contain ${className}`}
+        className={`team-logo object-contain ${className}`}
         style={{ width: size, height: size }}
       />
     );
   }
 
-  const label = team?.abbreviation ?? (teamId === "FA" ? "FA" : "—");
-  const ring = team?.primaryColor ?? "#9A9A9A";
-  const fontSize = label.length >= 3 ? size * 0.34 : size * 0.42;
-
+  const label = team?.abbreviation ?? (teamId === "FA" ? "FA" : "-");
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
+    <span
       role="img"
       aria-label={team ? `${team.city} ${team.name}` : "Free agent"}
-      className={className}
+      className={`inline-grid shrink-0 place-items-center rounded-full bg-silver-light font-semibold text-silver-deep ${className}`}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * (label.length >= 3 ? 0.3 : 0.38),
+      }}
     >
-      <circle cx="50" cy="50" r="46" fill="#E8E8E8" stroke={ring} strokeWidth="5" />
-      <text
-        x="50"
-        y="50"
-        dominantBaseline="central"
-        textAnchor="middle"
-        fontSize={fontSize * (100 / size)}
-        fontWeight="800"
-        fill="#0A0A0A"
-        fontFamily="system-ui, sans-serif"
-      >
-        {label}
-      </text>
-    </svg>
+      {label}
+    </span>
   );
 }

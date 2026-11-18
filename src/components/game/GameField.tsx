@@ -106,7 +106,7 @@ function goalPost(bx: number, by: number, gradId: string, dir: 1 | -1) {
       <path
         d={d}
         transform="translate(2,2)"
-        stroke="#74590a"
+        stroke="#3b3f45"
         strokeWidth="6.5"
         fill="none"
       />
@@ -187,31 +187,22 @@ export default function GameField({
   return (
     <div>
       {/* Info bar */}
-      <div className="mb-2 grid grid-cols-3 divide-x divide-silver rounded-lg border border-silver text-center">
-        <div className="px-2 py-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-silver-deep">
-            Down
+      <div className="mb-3 grid grid-cols-3 gap-3">
+        {[
+          ["Down", down ? `${ordinal(down)} & ${distance}` : "-"],
+          ["Ball on", ballOnLabel(ballAbs, awayAbbr, homeAbbr)],
+          ["Possession", possessionIsAway ? awayAbbr : homeAbbr],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="panel px-4 py-2.5"
+          >
+            <div className="text-xs text-silver-deep">{label}</div>
+            <div className="font-display text-lg leading-tight text-ink">
+              {value}
+            </div>
           </div>
-          <div className="text-sm font-bold text-ink">
-            {down ? `${ordinal(down)} & ${distance}` : "—"}
-          </div>
-        </div>
-        <div className="px-2 py-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-silver-deep">
-            Ball On
-          </div>
-          <div className="text-sm font-bold text-ink">
-            {ballOnLabel(ballAbs, awayAbbr, homeAbbr)}
-          </div>
-        </div>
-        <div className="px-2 py-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-silver-deep">
-            Possession
-          </div>
-          <div className="text-sm font-bold text-ink">
-            {possessionIsAway ? awayAbbr : homeAbbr}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Field */}
@@ -220,9 +211,9 @@ export default function GameField({
           <defs>
             {["gp-l", "gp-r"].map((id) => (
               <linearGradient key={id} id={id} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#FCE68F" />
-                <stop offset="0.5" stopColor="#F4C20D" />
-                <stop offset="1" stopColor="#C79309" />
+                <stop offset="0" stopColor="#F4F5F7" />
+                <stop offset="0.5" stopColor="#BFC3C9" />
+                <stop offset="1" stopColor="#80868E" />
               </linearGradient>
             ))}
           </defs>
@@ -259,16 +250,27 @@ export default function GameField({
             />
           ))}
 
-          {/* First-down line (yellow) */}
+          {/* First-down line (white, edged in black so it reads over the yard lines) */}
           {firstDownF !== undefined && (
-            <line
-              x1={xTop(firstDownF)}
-              y1={TOP_Y}
-              x2={xBot(firstDownF)}
-              y2={BOT_Y}
-              stroke="#FDE047"
-              strokeWidth="4"
-            />
+            <>
+              <line
+                x1={xTop(firstDownF)}
+                y1={TOP_Y}
+                x2={xBot(firstDownF)}
+                y2={BOT_Y}
+                stroke="#0b0b0d"
+                strokeOpacity="0.55"
+                strokeWidth="7"
+              />
+              <line
+                x1={xTop(firstDownF)}
+                y1={TOP_Y}
+                x2={xBot(firstDownF)}
+                y2={BOT_Y}
+                stroke="#FFFFFF"
+                strokeWidth="4"
+              />
+            </>
           )}
 
           {/* Line of scrimmage (blue) — where the ball is now */}
@@ -357,7 +359,7 @@ export default function GameField({
           className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
           style={{ left: `${(tipX / VB_W) * 100}%`, top: `${(tipY / VB_H) * 100}%` }}
         >
-          <div className="relative grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-white shadow-lg">
+          <div className="relative grid h-9 w-9 place-items-center rounded-full border-2 border-white bg-white shadow-[0_6px_16px_-6px_rgb(0_0_0/0.5)]">
             <TeamLogo teamId={possessionTeamId} size={26} />
             <span className="absolute -bottom-[6px] left-1/2 h-0 w-0 -translate-x-1/2 border-x-[6px] border-t-[8px] border-x-transparent border-t-white" />
           </div>
@@ -365,13 +367,13 @@ export default function GameField({
       </div>
 
       {/* Legend */}
-      <div className="mt-2 flex justify-center gap-4 text-[10px] font-semibold text-silver-deep">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#2563EB]" />
+      <div className="mt-2 flex justify-center gap-5">
+        <span className="flex items-center gap-1.5 text-xs text-silver-deep">
+          <span className="inline-block h-1.5 w-4 rounded-full bg-[#2563EB]" />
           Line of scrimmage
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#FDE047]" />
+        <span className="flex items-center gap-1.5 text-xs text-silver-deep">
+          <span className="inline-block h-1.5 w-4 rounded-full bg-white ring-1 ring-ink/40" />
           First down
         </span>
       </div>

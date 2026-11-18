@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import PageContainer from "@/components/PageContainer";
+import PageHeading from "@/components/PageHeading";
 import SupabaseNotice from "@/components/auth/SupabaseNotice";
 import { isSupabaseConfigured } from "@/utils/supabase/config";
 import { createClient } from "@/utils/supabase/server";
@@ -11,8 +12,8 @@ export default async function AccountPage() {
   if (!isSupabaseConfigured) {
     return (
       <PageContainer>
-        <div className="mx-auto max-w-md py-12">
-          <h1 className="mb-4 text-2xl font-bold text-ink">Your account</h1>
+        <PageHeading title="Your account" />
+        <div className="max-w-xl">
           <SupabaseNotice />
         </div>
       </PageContainer>
@@ -38,19 +39,16 @@ export default async function AccountPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-md py-12">
-        <h1 className="mb-6 text-2xl font-bold text-ink">Your account</h1>
-
-        <div className="space-y-3 rounded-lg border border-silver p-5">
-          <Row label="Display name" value={profile?.display_name ?? "—"} />
-          <Row label="Email" value={user.email ?? "—"} />
+      <PageHeading title="Your account" />
+      <div className="max-w-xl">
+        <div className="panel divide-y divide-silver/70">
+          <Row label="Display name" value={profile?.display_name ?? "-"} />
+          <Row label="Email" value={user.email ?? "-"} />
           <Row
             label="Role"
             value={
               isAdmin ? (
-                <span className="rounded bg-ink px-1.5 py-0.5 text-xs font-bold text-primary">
-                  ADMIN
-                </span>
+                <span className="tag bg-ink text-primary">ADMIN</span>
               ) : (
                 "User"
               )
@@ -59,25 +57,19 @@ export default async function AccountPage() {
           <Row
             label="Favorite team"
             value={
-              favoriteTeam ? `${favoriteTeam.city} ${favoriteTeam.name}` : "—"
+              favoriteTeam ? `${favoriteTeam.city} ${favoriteTeam.name}` : "-"
             }
           />
         </div>
 
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-6 flex items-center gap-3">
           {isAdmin && (
-            <Link
-              href="/admin"
-              className="rounded-md border border-silver-deep px-4 py-2 text-sm font-bold text-ink hover:bg-silver-light"
-            >
+            <Link href="/admin" className="btn btn-outline">
               Admin
             </Link>
           )}
           <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-md bg-ink px-4 py-2 text-sm font-bold text-primary hover:opacity-90"
-            >
+            <button type="submit" className="btn btn-primary">
               Sign out
             </button>
           </form>
@@ -89,9 +81,9 @@ export default async function AccountPage() {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 px-5 py-3.5">
       <span className="text-sm text-silver-deep">{label}</span>
-      <span className="text-sm font-semibold text-ink">{value}</span>
+      <span className="text-sm font-medium text-ink">{value}</span>
     </div>
   );
 }

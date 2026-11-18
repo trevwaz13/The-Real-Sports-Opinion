@@ -1,28 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Frank_Ruhl_Libre } from "next/font/google";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ScoreTicker from "@/components/ScoreTicker";
 
-// Inter as the site-wide default body font.
-const inter = Inter({
-  variable: "--font-sans",
+// Archivo: a variable-width grotesk. Headings run slightly wide to echo the
+// logo; body text sits at normal width.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  display: "swap",
-});
-
-// Frank Ruhl Libre — used only in the header (exposed via --font-header).
-const frankRuhlLibre = Frank_Ruhl_Libre({
-  variable: "--font-header",
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
+  axes: ["wdth"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "RSO — NFL Stats, Rankings & Fantasy",
+  title: "RSO | NFL Stats, Rankings & Fantasy",
   description:
-    "RSO: NFL stats, player & power rankings, standings, and fantasy — clean and uncluttered.",
+    "RSO: NFL stats, player and power rankings, standings, and fantasy.",
 };
 
 export default function RootLayout({
@@ -34,7 +29,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${frankRuhlLibre.variable} h-full antialiased`}
+      className={`${archivo.variable} h-full antialiased`}
     >
       <body className="flex min-h-screen flex-col bg-primary text-ink">
         {/* Apply the saved theme before paint so there's no flash of the wrong
@@ -45,6 +40,7 @@ export default function RootLayout({
           }}
         />
         <Header />
+        <ScoreTicker />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

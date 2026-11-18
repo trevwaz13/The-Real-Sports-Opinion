@@ -1,23 +1,22 @@
 import type { Metadata } from "next";
 import PageContainer from "@/components/PageContainer";
+import PageHeading from "@/components/PageHeading";
 import ThemeToggle from "@/components/ThemeToggle";
 
-export const metadata: Metadata = { title: "Settings — RSO" };
+export const metadata: Metadata = { title: "Settings | RSO" };
 
 export default function SettingsPage() {
   return (
-    <PageContainer className="pb-12">
-      <section className="py-8">
-        <h1 className="mb-6 text-3xl font-bold text-ink">Settings</h1>
-
-        <div className="rounded-lg border border-silver p-5">
-          <h2 className="text-lg font-bold text-ink">Appearance</h2>
-          <p className="mb-4 mt-1 text-sm text-silver-deep">
-            Choose a theme. &ldquo;System&rdquo; follows your device&rsquo;s
-            light or dark setting.
+    <PageContainer>
+      <PageHeading title="Settings" />
+      <section className="panel flex max-w-2xl flex-wrap items-center justify-between gap-4 p-5">
+        <div>
+          <h2 className="font-semibold text-ink">Appearance</h2>
+          <p className="mt-0.5 text-sm text-silver-deep">
+            System follows your device&rsquo;s light or dark setting.
           </p>
-          <ThemeToggle />
         </div>
+        <ThemeToggle />
       </section>
     </PageContainer>
   );

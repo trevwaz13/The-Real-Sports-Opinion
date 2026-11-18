@@ -2,9 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getInjuredPlayers, getNews, getTeam, getTopFreeAgents } from "@/data/api";
+import {
+  getFantasyLeaders,
+  getInjuredPlayers,
+  getNews,
+  getPlayer,
+  getTeam,
+  getTopFreeAgents,
+} from "@/data/api";
+import { LAST_COMPLETED_WEEK } from "@/data/season";
 import { POSITIONS, type InjuryStatus, type Position } from "@/data/types";
 import PlayerHeadshot from "../PlayerHeadshot";
+import Select from "../Select";
 
 const CATEGORY_LABEL = {
   news: "News",
@@ -12,78 +21,100 @@ const CATEGORY_LABEL = {
   "free-agency": "Free Agency",
 } as const;
 
-const INJURY_BADGE: Record<InjuryStatus, string> = {
-  healthy: "text-emerald-700",
-  questionable: "text-amber-600",
-  doubtful: "text-orange-600",
-  out: "text-red-600",
-  ir: "text-red-700",
+const CATEGORY_TAG = {
+  news: "bg-silver-light text-ink",
+  injury: "bg-down/10 text-down",
+  "free-agency": "bg-ink text-primary",
+} as const;
+
+const INJURY_COLOR: Record<InjuryStatus, string> = {
+  healthy: "text-up",
+  questionable: "text-warn",
+  doubtful: "text-warn",
+  out: "text-down",
+  ir: "text-down",
 };
 
 type FaScope = Position | "ALL";
 
-// Section 5 — league news, injury updates, and free agency. Free agents flip
-// between "top 10 overall" and top 10 per position.
+// Section 5: the league feed, the injury report, and a third column that
+// adapts to the calendar — unsigned free agents in the offseason, and the last
+// week's top fantasy performers once games are being played.
 export default function HomeNews() {
-  const [faScope, setFaScope] = useState<FaScope>("ALL");
+  const [scope, setScope] = useState<FaScope>("ALL");
   const news = getNews();
   const injuries = getInjuredPlayers(6);
-  const freeAgents = getTopFreeAgents(
-    faScope === "ALL" ? undefined : faScope,
-    10,
-  );
+  const position = scope === "ALL" ? undefined : scope;
+  const freeAgents = getTopFreeAgents(position, 10);
+  const standouts = getFantasyLeaders(position, 10).map((row) => ({
+    player: getPlayer(row.playerId),
+    points: row.fantasyPoints,
+  }));
+  const showFreeAgents = freeAgents.length > 0;
+  const [lead, ...moreNews] = news;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {/* Headlines */}
-      <div className="rounded-lg border border-silver p-4">
-        <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-silver-deep">
-          Latest News
-        </h3>
-        <ul className="space-y-3">
-          {news.map((item) => (
-            <li key={item.id}>
-              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase text-silver-deep">
-                <span className="rounded bg-silver-light px-1.5 py-0.5">
+    <div className="grid gap-4 lg:grid-cols-12">
+      {/* Headlines: the lead story set large, the rest as a list */}
+      <div className="panel p-5 lg:col-span-5">
+        {lead && (
+          <article>
+            <div className="flex items-center gap-2">
+              <span className={`tag ${CATEGORY_TAG[lead.category]}`}>
+                {CATEGORY_LABEL[lead.category]}
+              </span>
+              <span className="text-xs text-silver-deep">{lead.timeAgo}</span>
+            </div>
+            <h3 className="font-display mt-3 text-2xl leading-snug text-ink">
+              {lead.headline}
+            </h3>
+            <p className="mt-2 leading-relaxed text-silver-deep">
+              {lead.summary}
+            </p>
+          </article>
+        )}
+        <ul className="mt-5 divide-y divide-silver border-t border-silver">
+          {moreNews.map((item) => (
+            <li key={item.id} className="py-3.5">
+              <div className="flex items-center gap-2">
+                <span className={`tag ${CATEGORY_TAG[item.category]}`}>
                   {CATEGORY_LABEL[item.category]}
                 </span>
-                <span>{item.timeAgo}</span>
+                <span className="text-xs text-silver-deep">{item.timeAgo}</span>
               </div>
-              <p className="mt-1 text-sm font-semibold text-ink">
+              <p className="mt-1.5 font-medium leading-snug text-ink">
                 {item.headline}
               </p>
-              <p className="text-xs text-silver-deep">{item.summary}</p>
+              <p className="mt-0.5 text-sm text-silver-deep">{item.summary}</p>
             </li>
           ))}
         </ul>
       </div>
 
       {/* Injuries */}
-      <div className="rounded-lg border border-silver p-4">
-        <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-silver-deep">
-          Injury Report
-        </h3>
-        <ul className="space-y-2">
+      <div className="panel self-start p-5 lg:col-span-3">
+        <h3 className="font-semibold text-ink">Injury Report</h3>
+        <ul className="mt-3 space-y-1">
           {injuries.map((p) => {
             const team = getTeam(p.teamId);
             return (
-              <li key={p.id} className="flex items-center gap-2">
+              <li key={p.id} className="flex items-center gap-3 py-1.5">
                 <Link href={`/player/${p.id}`} className="shrink-0">
-                  <PlayerHeadshot playerId={p.id} name={p.name} size={28} />
+                  <PlayerHeadshot playerId={p.id} name={p.name} size={34} />
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/player/${p.id}`}
-                    className="block truncate text-sm font-semibold text-ink hover:underline"
+                    className="block truncate text-sm font-medium text-ink hover:underline"
                   >
                     {p.name}
                   </Link>
                   <span className="text-xs text-silver-deep">
-                    {p.position} · {team?.abbreviation}
+                    {p.position}, {team?.abbreviation}
                   </span>
                 </div>
                 <span
-                  className={`shrink-0 text-xs font-bold uppercase ${INJURY_BADGE[p.injuryStatus]}`}
+                  className={`shrink-0 text-xs font-semibold uppercase ${INJURY_COLOR[p.injuryStatus]}`}
                 >
                   {p.injuryStatus}
                 </span>
@@ -93,48 +124,83 @@ export default function HomeNews() {
         </ul>
       </div>
 
-      {/* Free agents */}
-      <div className="rounded-lg border border-silver p-4">
-        <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-silver-deep">
-          Top Free Agents
-        </h3>
-        <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
-          {(["ALL", ...POSITIONS] as FaScope[]).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setFaScope(s)}
-              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${
-                faScope === s
-                  ? "border-ink bg-ink text-primary"
-                  : "border-silver text-silver-deep hover:bg-silver-light hover:text-ink"
-              }`}
-            >
-              {s === "ALL" ? "All" : s}
-            </button>
-          ))}
+      {/* Free agents in the offseason; week standouts once games are played */}
+      <div className="panel self-start p-5 lg:col-span-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-ink">
+            {showFreeAgents
+              ? "Top Free Agents"
+              : `Week ${LAST_COMPLETED_WEEK} Standouts`}
+          </h3>
+          <Select
+            label="Filter by position"
+            value={scope}
+            options={["ALL", ...POSITIONS] as FaScope[]}
+            onChange={setScope}
+            format={(s) => (s === "ALL" ? "All positions" : s)}
+          />
         </div>
-        <ol className="space-y-2">
-          {freeAgents.map((p, i) => (
-            <li key={p.id} className="flex items-center gap-2">
-              <span className="w-4 shrink-0 text-xs font-bold tabular-nums text-silver-deep">
-                {i + 1}
-              </span>
-              <Link href={`/player/${p.id}`} className="shrink-0">
-                <PlayerHeadshot playerId={p.id} name={p.name} size={26} />
-              </Link>
-              <Link
-                href={`/player/${p.id}`}
-                className="min-w-0 flex-1 truncate text-sm font-semibold text-ink hover:underline"
-              >
-                {p.name}
-              </Link>
-              <span className="shrink-0 text-xs text-silver-deep">
-                {p.position}
-              </span>
-            </li>
-          ))}
+        <ol className="mt-3">
+          {showFreeAgents
+            ? freeAgents.map((p, i) => (
+                <li key={p.id} className="flex items-center gap-3 py-1.5">
+                  <span className="num w-4 shrink-0 text-right text-xs text-silver-deep">
+                    {i + 1}
+                  </span>
+                  <Link href={`/player/${p.id}`} className="shrink-0">
+                    <PlayerHeadshot playerId={p.id} name={p.name} size={30} />
+                  </Link>
+                  <Link
+                    href={`/player/${p.id}`}
+                    className="min-w-0 flex-1 truncate text-sm font-medium text-ink hover:underline"
+                  >
+                    {p.name}
+                  </Link>
+                  <span className="tag shrink-0 bg-silver-light text-silver-deep">
+                    {p.position}
+                  </span>
+                </li>
+              ))
+            : standouts.map(({ player, points }, i) =>
+                player ? (
+                  <li
+                    key={player.id}
+                    className="flex items-center gap-3 py-1.5"
+                  >
+                    <span className="num w-4 shrink-0 text-right text-xs text-silver-deep">
+                      {i + 1}
+                    </span>
+                    <Link href={`/player/${player.id}`} className="shrink-0">
+                      <PlayerHeadshot
+                        playerId={player.id}
+                        name={player.name}
+                        size={30}
+                      />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/player/${player.id}`}
+                        className="block truncate text-sm font-medium text-ink hover:underline"
+                      >
+                        {player.name}
+                      </Link>
+                      <span className="text-xs text-silver-deep">
+                        {player.position},{" "}
+                        {getTeam(player.teamId)?.abbreviation}
+                      </span>
+                    </div>
+                    <span className="num shrink-0 text-sm font-semibold text-ink">
+                      {points.toFixed(1)}
+                    </span>
+                  </li>
+                ) : null,
+              )}
         </ol>
+        {!showFreeAgents && (
+          <p className="mt-3 text-xs text-silver-deep">
+            PPR fantasy points, week {LAST_COMPLETED_WEEK}.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -28,13 +28,14 @@ export default function FanRankingList({
   }, [position]);
 
   return entries === null ? (
-    <RankingTable position={position} source="fan" highlightId={highlightId} />
+    <RankingTable position={position} source="fan" highlightId={highlightId} podium />
   ) : (
     <RankingTable
       position={position}
       source="fan"
       entriesOverride={entries}
       highlightId={highlightId}
+      podium
     />
   );
 }

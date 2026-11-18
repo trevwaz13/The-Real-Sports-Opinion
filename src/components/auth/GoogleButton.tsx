@@ -3,7 +3,7 @@ export default function GoogleButton({ label }: { label: string }) {
   return (
     <button
       type="submit"
-      className="flex w-full items-center justify-center gap-2 rounded-md border border-silver-deep py-2 text-sm font-bold text-ink transition-colors hover:bg-silver-light"
+      className="flex w-full items-center justify-center gap-2.5 rounded-full border border-silver bg-surface py-2.5 text-sm font-medium text-ink transition-colors hover:bg-silver-light"
     >
       <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden>
         <path

@@ -10,13 +10,19 @@
 
 import { rankByRso, scorePlayer } from "@/lib/rsoScoring";
 import { rankTeamsByPower } from "@/lib/teamPower";
-import { FANTASY_WEEK, WAIVERS } from "./fantasy";
+import {
+  FANTASY_WEEK,
+  FANTASY_WEEK_NUMBER,
+  SCORED_WEEKS,
+  WAIVERS,
+  fantasyWeek,
+} from "./fantasy";
 import { GAMES } from "./games";
 import { getGameDetailById } from "./gameDetails";
 import { NEWS, type NewsCategory, type NewsItem } from "./news";
 import { PLAYERS, PLAYERS_BY_ID } from "./players";
 import { RANKED_SPOTS, RANKINGS } from "./rankings";
-import { CURRENT_WEEK } from "./season";
+import { CURRENT_WEEK, LAST_COMPLETED_WEEK } from "./season";
 import { TEAMS, TEAMS_BY_ID } from "./teams";
 import {
   POSITIONS,
@@ -202,6 +208,18 @@ export function getLiveGames(week: number = CURRENT_WEEK): Game[] {
   return getGames(week).filter((g) => g.status === "live");
 }
 
+/** Weeks that already have final scores. */
+export function getCompletedWeeks(): number[] {
+  return [...new Set(GAMES.filter((g) => g.status === "final").map((g) => g.week))].sort(
+    (a, b) => a - b,
+  );
+}
+
+/** The newest week with results, used as the default "latest scores" view. */
+export function getLatestScoredWeek(): number {
+  return LAST_COMPLETED_WEEK || getCompletedWeeks().slice(-1)[0] || 1;
+}
+
 /** Full game detail — box score, per-team leaders, and play-by-play. */
 export function getGameDetail(gameId: string): GameDetail | undefined {
   return getGameDetailById(gameId);
@@ -223,6 +241,20 @@ const RSO_RANKINGS: Record<Position, Ranking> = Object.fromEntries(
     },
   ]),
 ) as Record<Position, Ranking>;
+
+/** Every player at a position with their live RSO score, best first. Used by
+ *  the GM roster builder, which needs the full pool rather than the top 32. */
+export function getScoredPool(position: Position): {
+  player: Player;
+  score: number;
+}[] {
+  return rankByRso(PLAYERS, position)
+    .map((entry) => ({
+      player: PLAYERS_BY_ID[entry.playerId],
+      score: entry.score,
+    }))
+    .filter((row) => row.player && !row.player.isFreeAgent);
+}
 
 export function getRankings(
   position: Position,
@@ -282,21 +314,53 @@ export function getInjuredPlayers(limit = 8): Player[] {
 // --- Fantasy ----------------------------------------------------------------
 
 export function getFantasyWeek(
-  week: number = CURRENT_WEEK,
+  week: number = FANTASY_WEEK_NUMBER,
 ): FantasyPlayerWeek[] {
-  return FANTASY_WEEK.filter((f) => f.week === week).sort(
-    (a, b) => b.fantasyPoints - a.fantasyPoints,
-  );
+  return week === FANTASY_WEEK_NUMBER ? FANTASY_WEEK : fantasyWeek(week);
 }
 
 /** Highest weekly fantasy scorers, optionally filtered to one position. */
 export function getFantasyLeaders(
   position?: Position,
   limit = 10,
-  week: number = CURRENT_WEEK,
+  week: number = FANTASY_WEEK_NUMBER,
 ): FantasyPlayerWeek[] {
   return getFantasyWeek(week)
     .filter((f) => (position ? f.position === position : true))
+    .slice(0, limit);
+}
+
+/** Weeks with real fantasy scoring, newest first. */
+export function getFantasyWeeks(): number[] {
+  return SCORED_WEEKS;
+}
+
+/** Season-long fantasy totals per player, highest first. */
+export function getFantasySeasonLeaders(
+  position?: Position,
+  limit = 25,
+): { playerId: string; total: number; games: number; average: number }[] {
+  const totals = new Map<string, { total: number; games: number }>();
+  for (const week of SCORED_WEEKS) {
+    for (const row of getFantasyWeek(week)) {
+      const prev = totals.get(row.playerId) ?? { total: 0, games: 0 };
+      prev.total += row.fantasyPoints;
+      prev.games += 1;
+      totals.set(row.playerId, prev);
+    }
+  }
+  return [...totals.entries()]
+    .filter(([playerId]) => {
+      const player = PLAYERS_BY_ID[playerId];
+      return player && (position ? player.position === position : true);
+    })
+    .map(([playerId, { total, games }]) => ({
+      playerId,
+      total: Math.round(total * 10) / 10,
+      games,
+      average: Math.round((total / games) * 10) / 10,
+    }))
+    .sort((a, b) => b.total - a.total)
     .slice(0, limit);
 }
 

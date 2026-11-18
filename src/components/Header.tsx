@@ -12,7 +12,7 @@ type Indicator = { left: number; width: number; visible: boolean };
 
 export default function Header() {
   const pathname = usePathname();
-  const navRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLUListElement>(null);
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [indicator, setIndicator] = useState<Indicator>({
     left: 0,
@@ -24,7 +24,7 @@ export default function Header() {
   const activeHref =
     NAV_ITEMS.find((item) => isActive(pathname, item.href))?.href ?? null;
 
-  // Slide the underline beneath whichever desktop nav item is active.
+  // Slide the ink underline (with its soft shadow) beneath the active item.
   useLayoutEffect(() => {
     function update() {
       const nav = navRef.current;
@@ -32,12 +32,10 @@ export default function Header() {
       if (nav && el) {
         const navRect = nav.getBoundingClientRect();
         const elRect = el.getBoundingClientRect();
-        // Inset the underline slightly inside the link so it reads a touch
-        // shorter than the label width, kept centered under the text.
-        const INSET = 18;
+        const INSET = 12;
         setIndicator({
-          left: elRect.left - navRect.left + INSET / 2,
-          width: Math.max(0, elRect.width - INSET),
+          left: elRect.left - navRect.left + INSET,
+          width: Math.max(0, elRect.width - INSET * 2),
           visible: true,
         });
       } else {
@@ -52,30 +50,26 @@ export default function Header() {
   }, [activeHref]);
 
   return (
-    <header
-      className="sticky top-0 z-50 border-b border-silver bg-primary/90 backdrop-blur"
-      style={{ fontFamily: "var(--font-header)" }}
-    >
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Logo — top left */}
+    <header className="sticky top-0 z-50 border-b border-silver bg-primary/85 backdrop-blur-xl backdrop-saturate-150">
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" aria-label="RSO home" className="shrink-0">
-          <RsoLogo height={48} />
+          <RsoLogo height={30} />
         </Link>
 
-        {/* Desktop nav with animated shadow-underline */}
-        <nav ref={navRef} className="relative hidden md:block">
-          <ul className="flex items-center gap-1">
+        {/* Desktop nav */}
+        <nav className="hidden self-stretch md:flex">
+          <ul ref={navRef} className="relative flex items-stretch">
             {NAV_ITEMS.map((item) => {
               const active = isActive(pathname, item.href);
               return (
-                <li key={item.href}>
+                <li key={item.href} className="flex">
                   <Link
                     href={item.href}
                     ref={(el) => {
                       itemRefs.current[item.href] = el;
                     }}
                     aria-current={active ? "page" : undefined}
-                    className={`block px-3 py-2 text-[15px] font-black transition-colors ${
+                    className={`flex items-center px-3 text-sm font-medium transition-colors lg:px-4 ${
                       active ? "text-ink" : "text-silver-deep hover:text-ink"
                     }`}
                   >
@@ -84,28 +78,26 @@ export default function Header() {
                 </li>
               );
             })}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -bottom-px h-0.5 rounded-full bg-ink shadow-[var(--rso-underline-shadow)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{
+                left: indicator.left,
+                width: indicator.width,
+                opacity: indicator.visible ? 1 : 0,
+              }}
+            />
           </ul>
-          {/* The sliding black underline with a soft grey drop-shadow */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-0 h-[3px] rounded-full bg-ink transition-all duration-300 ease-out"
-            style={{
-              left: indicator.left,
-              width: indicator.width,
-              opacity: indicator.visible ? 1 : 0,
-              boxShadow: "0 2px 6px rgba(10, 10, 10, 0.45)",
-            }}
-          />
         </nav>
 
-        {/* Settings + account menu / Sign in — top right */}
-        <div className="hidden items-center gap-1 md:flex">
+        {/* Settings + account menu / Sign in */}
+        <div className="hidden items-center gap-1.5 md:flex">
           <Link
             href="/settings"
             aria-label="Settings"
             aria-current={isActive(pathname, "/settings") ? "page" : undefined}
-            className={`rounded-md p-2 transition-colors hover:bg-silver-light hover:text-ink ${
-              isActive(pathname, "/settings") ? "text-ink" : "text-silver-deep"
+            className={`grid h-9 w-9 place-items-center rounded-full transition-colors hover:bg-silver-light hover:text-ink ${
+              isActive(pathname, "/settings") ? "bg-silver-light text-ink" : "text-silver-deep"
             }`}
           >
             <Settings size={18} />
@@ -119,52 +111,42 @@ export default function Header() {
           onClick={() => setMenuOpen((open) => !open)}
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
-          className="inline-flex items-center justify-center rounded-md p-2 text-ink hover:bg-silver-light md:hidden"
+          className="grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-silver-light md:hidden"
         >
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile menu */}
       {menuOpen && (
         <nav className="border-t border-silver bg-primary md:hidden">
-          <ul className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
-            {NAV_ITEMS.map((item) => {
-              const active = isActive(pathname, item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    aria-current={active ? "page" : undefined}
-                    className={`block py-2 text-base font-black ${
-                      active
-                        ? "text-ink underline decoration-2 underline-offset-4"
-                        : "text-silver-deep hover:text-ink"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-            <li>
-              <Link
-                href="/settings"
-                onClick={() => setMenuOpen(false)}
-                aria-current={
-                  isActive(pathname, "/settings") ? "page" : undefined
-                }
-                className={`block py-2 text-base font-black ${
-                  isActive(pathname, "/settings")
-                    ? "text-ink underline decoration-2 underline-offset-4"
-                    : "text-silver-deep hover:text-ink"
-                }`}
-              >
-                Settings
-              </Link>
-            </li>
-            <li className="mt-2 border-t border-silver pt-3 pb-1">
+          <ul className="mx-auto max-w-[1240px] px-4 py-2 sm:px-6">
+            {[...NAV_ITEMS, { label: "Settings", href: "/settings" }].map(
+              (item) => {
+                const active = isActive(pathname, item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMenuOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center justify-between border-b border-silver py-3 text-base font-medium ${
+                        active ? "text-ink" : "text-silver-deep"
+                      }`}
+                    >
+                      {item.label}
+                      {active && (
+                        <span
+                          aria-hidden
+                          className="h-0.5 w-6 rounded-full bg-ink shadow-[var(--rso-underline-shadow)]"
+                        />
+                      )}
+                    </Link>
+                  </li>
+                );
+              },
+            )}
+            <li className="pb-2 pt-4">
               <AuthButton onNavigate={() => setMenuOpen(false)} />
             </li>
           </ul>

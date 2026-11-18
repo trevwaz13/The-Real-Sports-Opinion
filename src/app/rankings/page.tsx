@@ -5,13 +5,20 @@ import { useSearchParams } from "next/navigation";
 import { POSITIONS, type Position, type RankingSource } from "@/data/types";
 import { SOURCE_ORDER, useRankingsStore } from "@/store/rankings";
 import PageContainer from "@/components/PageContainer";
+import { SEASON_YEAR } from "@/data/season";
+import PageHeading from "@/components/PageHeading";
 import PositionTabs from "@/components/PositionTabs";
-import PreseasonBadge from "@/components/PreseasonBadge";
 import RankingTable from "@/components/RankingTable";
 import SourceTabs from "@/components/SourceTabs";
 import FanVoteBar from "@/components/rankings/FanVoteBar";
 import FanRankingList from "@/components/rankings/FanRankingList";
 import MediaRankingList from "@/components/rankings/MediaRankingList";
+
+const SOURCE_NOTE: Record<RankingSource, string> = {
+  media: "Media rankings are maintained by the RSO editor.",
+  rso: "Generated live by the RSO scoring engine: production points plus tiered bonuses.",
+  fan: "Aggregated from fan ballots. Players with no votes fall back to a blend of their RSO and Media positions.",
+};
 
 function RankingsView() {
   const params = useSearchParams();
@@ -47,37 +54,21 @@ function RankingsView() {
   }, [highlightId, source, position]);
 
   return (
-    <section className="py-8">
-      <div className="mb-2 flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-bold text-ink">Player Rankings</h1>
-        <PreseasonBadge />
-      </div>
-      <p className="mb-6 max-w-2xl text-sm text-silver-deep">
-        Preseason rankings based on last season&apos;s stats and projected
-        starters. Once the 2026 season kicks off, these update weekly.
-      </p>
+    <>
+      <PageHeading title="Player Rankings" badge>
+        Three takes on the same {SEASON_YEAR} season: the editor&apos;s Media
+        board, the data-driven RSO Official engine, and the aggregated Fan vote.
+        Updated as results come in.
+      </PageHeading>
 
       <SourceTabs value={source} onChange={setSource} className="mb-5" />
 
-      <PositionTabs value={position} onChange={setPosition} className="mb-3" />
-
-      {source === "media" && (
-        <p className="mb-4 text-xs text-silver-deep">
-          Media rankings are maintained by the RSO editor.
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <PositionTabs value={position} onChange={setPosition} />
+        <p className="max-w-md text-sm text-silver-deep">
+          {SOURCE_NOTE[source]}
         </p>
-      )}
-      {source === "rso" && (
-        <p className="mb-4 text-xs text-silver-deep">
-          Generated live by the RSO scoring engine — production points plus
-          tiered bonuses.
-        </p>
-      )}
-      {source === "fan" && (
-        <p className="mb-4 text-xs text-silver-deep">
-          Aggregated from fan ballots. Players with no votes fall back to a blend
-          of their RSO and Media positions.
-        </p>
-      )}
+      </div>
 
       {source === "fan" ? (
         <>
@@ -99,9 +90,10 @@ function RankingsView() {
           position={position}
           source={source}
           highlightId={highlightId}
+          podium
         />
       )}
-    </section>
+    </>
   );
 }
 

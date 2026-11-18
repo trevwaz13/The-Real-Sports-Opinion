@@ -4,17 +4,18 @@ type RsoLogoProps = {
   className?: string;
 };
 
-// The RSO wordmark — a chrome/embossed "RSO" on a white field.
-// Source asset lives at public/rso-logo.png (1536×1024) so real art drops in
-// by a file swap. Width is computed from the aspect ratio rather than left as
-// `auto`, which can collapse to 0 for a replaced element inside a flex column.
-const ASPECT_RATIO = 1536 / 1024;
+// The RSO chrome wordmark. public/rso-logo-chrome.png is the original
+// public/rso-logo.png art with the white field removed and cropped to the
+// letters, so it sits on the dark header bar as well as on light pages. Width is
+// computed from the aspect ratio rather than left as `auto`, which can collapse
+// to 0 for a replaced element inside a flex column.
+const ASPECT_RATIO = 640 / 204;
 
 export default function RsoLogo({ height = 40, className }: RsoLogoProps) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/rso-logo.png"
+      src="/rso-logo-chrome.png"
       alt="RSO"
       width={Math.round(height * ASPECT_RATIO)}
       height={height}

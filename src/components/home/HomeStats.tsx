@@ -22,7 +22,7 @@ const TD_CATS: Category[] = [
   { key: "recTD", title: "Receiving TDs" },
 ];
 
-// Section 3 — stat leaders (top 3 per category). Toggle swaps the whole section
+// Section 3: stat leaders (top 3 per category). Toggle swaps the whole section
 // between yardage/defense leaders and touchdown leaders.
 export default function HomeStats() {
   const [mode, setMode] = useState<"yards" | "td">("yards");
@@ -30,31 +30,34 @@ export default function HomeStats() {
 
   return (
     <div>
-      <div className="mb-3 inline-flex rounded-md border border-silver p-0.5">
+      <div role="tablist" aria-label="Stat group" className="tabs mb-5">
         {(["yards", "td"] as const).map((m) => (
           <button
             key={m}
             type="button"
+            role="tab"
+            aria-selected={mode === m}
             onClick={() => setMode(m)}
-            className={`rounded px-3 py-1 text-sm font-semibold transition-colors ${
-              mode === m
-                ? "bg-ink text-primary"
-                : "text-silver-deep hover:text-ink"
-            }`}
+            className="tab"
           >
             {m === "yards" ? "Yards & Defense" : "Touchdowns"}
           </button>
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {cats.map((cat) => (
-          <StatLeaderCard
+      <div className="grid gap-3 sm:grid-cols-2">
+        {cats.map((cat, i) => (
+          // An odd count leaves the first card spanning the full row.
+          <div
             key={cat.key}
-            title={cat.title}
-            leaders={getStatLeaders(cat.key, 3)}
-            decimals={cat.decimals}
-          />
+            className={cats.length % 2 === 1 && i === 0 ? "sm:col-span-2" : ""}
+          >
+            <StatLeaderCard
+              title={cat.title}
+              leaders={getStatLeaders(cat.key, 3)}
+              decimals={cat.decimals}
+            />
+          </div>
         ))}
       </div>
     </div>

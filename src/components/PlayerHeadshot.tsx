@@ -1,7 +1,8 @@
+import { UserRound } from "lucide-react";
 import { getPlayer } from "@/data/api";
 
-// Renders a player's real headshot (from nflverse), falling back to a silhouette
-// in a silver circle when there's no image.
+// Renders a player's real headshot (from nflverse) cropped into a circle,
+// falling back to a person glyph when there's no image.
 export default function PlayerHeadshot({
   playerId,
   name,
@@ -25,24 +26,20 @@ export default function PlayerHeadshot({
         width={size}
         height={size}
         loading="lazy"
-        className={`rounded-full bg-silver-light object-cover ${className}`}
+        className={`shrink-0 rounded-full bg-silver-light object-cover object-top ${className}`}
         style={{ width: size, height: size }}
       />
     );
   }
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
+    <span
       role="img"
       aria-label={name ?? "Player"}
-      className={`rounded-full ${className}`}
+      className={`inline-grid shrink-0 place-items-center rounded-full bg-silver-light text-silver-deep ${className}`}
+      style={{ width: size, height: size }}
     >
-      <circle cx="50" cy="50" r="50" fill="#E8E8E8" />
-      <circle cx="50" cy="38" r="18" fill="#9A9A9A" />
-      <path d="M18 86c0-18 14-30 32-30s32 12 32 30z" fill="#9A9A9A" />
-    </svg>
+      <UserRound size={Math.round(size * 0.55)} strokeWidth={1.75} />
+    </span>
   );
 }

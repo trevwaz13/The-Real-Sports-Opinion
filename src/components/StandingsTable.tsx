@@ -18,8 +18,8 @@ function signed(n: number): string {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
-// Standings for a scope. `compact` (home) drops the home/away columns; the full
-// Phase 7 page shows everything. Team logos and names are clickable.
+// Standings for a scope. `compact` (home) drops the PF/PA and home/away
+// columns; the full page shows everything. Team logos and names are clickable.
 export default function StandingsTable({
   scope = "NFL",
   compact = false,
@@ -28,38 +28,48 @@ export default function StandingsTable({
   compact?: boolean;
 }) {
   const teams = getStandings(scope);
+  const th = "label px-2 py-2.5 text-right font-medium";
+  const td = "num px-2 py-2 text-right text-sm";
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-silver">
-      <table className="w-full min-w-[300px] text-sm sm:min-w-[420px]">
+    <div className="panel overflow-x-auto">
+      <table className="w-full min-w-[320px]">
         <thead>
-          <tr className="border-b border-silver text-xs uppercase text-silver-deep">
-            <th className="px-3 py-2 text-left font-semibold">Team</th>
-            <th className="px-2 py-2 text-center font-semibold">W</th>
-            <th className="px-2 py-2 text-center font-semibold">L</th>
-            <th className="px-2 py-2 text-center font-semibold">T</th>
-            <th className="px-2 py-2 text-center font-semibold">PCT</th>
-            <th className="hidden px-2 py-2 text-center font-semibold sm:table-cell">
-              PF
-            </th>
-            <th className="hidden px-2 py-2 text-center font-semibold sm:table-cell">
-              PA
-            </th>
-            <th className="px-2 py-2 text-center font-semibold">DIFF</th>
+          <tr className="border-b border-silver">
+            <th className="label px-4 py-2.5 text-left font-medium">Team</th>
+            <th className={th}>W</th>
+            <th className={th}>L</th>
+            <th className={th}>T</th>
+            <th className={th}>Pct</th>
             {!compact && (
               <>
-                <th className="px-2 py-2 text-center font-semibold">HOME</th>
-                <th className="px-2 py-2 text-center font-semibold">AWAY</th>
+                <th className={`${th} hidden sm:table-cell`}>PF</th>
+                <th className={`${th} hidden sm:table-cell`}>PA</th>
+              </>
+            )}
+            {!compact && (
+              <th className={`${th} hidden w-28 lg:table-cell`}>
+                <span className="sr-only">Win percentage bar</span>
+              </th>
+            )}
+            <th className={`${th} pr-4`}>Diff</th>
+            {!compact && (
+              <>
+                <th className={`${th} hidden md:table-cell`}>Home</th>
+                <th className={`${th} hidden pr-4 md:table-cell`}>Away</th>
               </>
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-silver">
+        <tbody>
           {teams.map((team, i) => (
-            <tr key={team.id} className="hover:bg-silver-light/50">
-              <td className="px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-4 shrink-0 text-xs font-bold tabular-nums text-silver-deep">
+            <tr
+              key={team.id}
+              className="border-t border-silver/60 transition-colors first:border-t-0 hover:bg-silver-light/60"
+            >
+              <td className="px-4 py-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="num w-5 shrink-0 text-right text-xs text-silver-deep">
                     {i + 1}
                   </span>
                   <Link
@@ -67,39 +77,49 @@ export default function StandingsTable({
                     aria-label={team.name}
                     className="shrink-0"
                   >
-                    <TeamLogo teamId={team.id} size={22} />
+                    <TeamLogo teamId={team.id} size={24} />
                   </Link>
                   <Link
                     href={`/team/${team.id}`}
-                    className="truncate font-semibold text-ink hover:underline"
+                    className="truncate text-sm font-medium text-ink hover:underline"
                   >
-                    <span className="hidden sm:inline">{team.city} </span>
+                    {!compact && (
+                      <span className="hidden font-normal text-silver-deep lg:inline">
+                        {team.city}{" "}
+                      </span>
+                    )}
                     {team.name}
                   </Link>
                 </div>
               </td>
-              <td className="px-2 py-2 text-center tabular-nums">
-                {team.record.wins}
-              </td>
-              <td className="px-2 py-2 text-center tabular-nums">
-                {team.record.losses}
-              </td>
-              <td className="px-2 py-2 text-center tabular-nums">
-                {team.record.ties}
-              </td>
-              <td className="px-2 py-2 text-center tabular-nums">{pct(team)}</td>
-              <td className="hidden px-2 py-2 text-center tabular-nums sm:table-cell">
-                {team.pointsFor}
-              </td>
-              <td className="hidden px-2 py-2 text-center tabular-nums sm:table-cell">
-                {team.pointsAgainst}
-              </td>
+              <td className={`${td} font-semibold text-ink`}>{team.record.wins}</td>
+              <td className={td}>{team.record.losses}</td>
+              <td className={`${td} text-silver-deep`}>{team.record.ties}</td>
+              <td className={td}>{pct(team)}</td>
+              {!compact && (
+                <>
+                  <td className={`${td} hidden text-silver-deep sm:table-cell`}>
+                    {team.pointsFor}
+                  </td>
+                  <td className={`${td} hidden text-silver-deep sm:table-cell`}>
+                    {team.pointsAgainst}
+                  </td>
+                </>
+              )}
+              {!compact && (
+                <td className="hidden px-2 lg:table-cell" aria-hidden>
+                  <div
+                    className="meter"
+                    style={{ "--value": Number(pct(team)) * 100 } as React.CSSProperties}
+                  />
+                </td>
+              )}
               <td
-                className={`px-2 py-2 text-center font-semibold tabular-nums ${
+                className={`${td} pr-4 font-medium ${
                   team.pointDifferential > 0
-                    ? "text-emerald-700"
+                    ? "text-up"
                     : team.pointDifferential < 0
-                      ? "text-red-600"
+                      ? "text-down"
                       : "text-silver-deep"
                 }`}
               >
@@ -107,10 +127,10 @@ export default function StandingsTable({
               </td>
               {!compact && (
                 <>
-                  <td className="px-2 py-2 text-center tabular-nums text-silver-deep">
+                  <td className={`${td} hidden text-silver-deep md:table-cell`}>
                     {rec(team.homeRecord)}
                   </td>
-                  <td className="px-2 py-2 text-center tabular-nums text-silver-deep">
+                  <td className={`${td} hidden pr-4 text-silver-deep md:table-cell`}>
                     {rec(team.awayRecord)}
                   </td>
                 </>

@@ -28,13 +28,14 @@ export default function MediaRankingList({
   }, [position]);
 
   return entries === null ? (
-    <RankingTable position={position} source="media" highlightId={highlightId} />
+    <RankingTable position={position} source="media" highlightId={highlightId} podium />
   ) : (
     <RankingTable
       position={position}
       source="media"
       entriesOverride={entries}
       highlightId={highlightId}
+      podium
     />
   );
 }

@@ -86,6 +86,6 @@ export function formatStat(
   value: number | undefined,
   decimals = 0,
 ): string {
-  if (value === undefined || Number.isNaN(value)) return "—";
+  if (value === undefined || Number.isNaN(value)) return "-";
   return decimals > 0 ? value.toFixed(decimals) : Math.round(value).toString();
 }

@@ -114,7 +114,7 @@ export default function AdminEditor() {
   return (
     <div>
       {/* Mode tabs */}
-      <div className="mb-4 flex gap-6 border-b border-silver">
+      <div role="tablist" aria-label="Editor mode" className="tabs mb-5">
         {(
           [
             ["players", "Player Rankings"],
@@ -124,12 +124,10 @@ export default function AdminEditor() {
           <button
             key={m}
             type="button"
+            role="tab"
+            aria-selected={mode === m}
             onClick={() => changeMode(m)}
-            className={`-mb-px border-b-2 px-1 pb-2 text-base font-bold transition-colors ${
-              mode === m
-                ? "border-ink text-ink"
-                : "border-transparent text-silver-deep hover:text-ink"
-            }`}
+            className="tab sm:text-2xl"
           >
             {label}
           </button>
@@ -147,19 +145,19 @@ export default function AdminEditor() {
       <div className="grid gap-4 lg:grid-cols-2">
         {/* The ranking — drag to reorder */}
         <div>
-          <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-silver-deep">
+          <h3 className="mb-3 flex items-baseline gap-2 font-semibold text-ink">
             {mode === "players" ? `${position} ranking` : "Power ranking"}
-            <span className="ml-2 font-normal normal-case">
+            <span className="num text-xs font-normal text-silver-deep">
               ({order.length} added)
             </span>
           </h3>
           {order.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-silver px-3 py-10 text-center text-sm text-silver-deep">
-              Blank sheet — add {mode === "players" ? "players" : "teams"} from
-              the right, then drag to order them.
+            <p className="rounded-2xl border border-dashed border-silver px-3 py-10 text-center text-sm text-silver-deep">
+              Blank sheet. Add {mode === "players" ? "players" : "teams"} from
+              the pool, then drag to order them.
             </p>
           ) : (
-            <ol className="overflow-hidden rounded-lg border border-silver">
+            <ol className="panel p-1.5">
               {order.map((id, i) => {
                 const player = mode === "players" ? getPlayer(id) : undefined;
                 const team =
@@ -176,15 +174,15 @@ export default function AdminEditor() {
                     onDragEnter={() => onDragEnter(i)}
                     onDragOver={(e) => e.preventDefault()}
                     onDragEnd={() => setDragIndex(null)}
-                    className={`flex cursor-grab items-center gap-2 border-b border-silver px-3 py-2 last:border-b-0 active:cursor-grabbing ${
-                      dragIndex === i ? "bg-silver-light" : "hover:bg-silver-light/50"
+                    className={`flex cursor-grab items-center gap-2 rounded-lg px-3 py-2 active:cursor-grabbing ${
+                      dragIndex === i ? "bg-silver-light" : "hover:bg-silver-light"
                     }`}
                   >
                     <GripVertical
                       size={16}
                       className="shrink-0 text-silver-deep"
                     />
-                    <span className="w-6 shrink-0 text-right text-sm font-bold tabular-nums text-silver-deep">
+                    <span className="num w-6 shrink-0 text-right text-sm text-silver-deep">
                       {i + 1}
                     </span>
                     {mode === "players" ? (
@@ -203,7 +201,7 @@ export default function AdminEditor() {
                           ? `${team.city} ${team.name}`
                           : id}
                       {mode === "players" && team && (
-                        <span className="ml-1 text-xs text-silver-deep">
+                        <span className="ml-1.5 text-xs text-silver-deep">
                           {team.abbreviation}
                         </span>
                       )}
@@ -212,7 +210,7 @@ export default function AdminEditor() {
                       type="button"
                       onClick={() => remove(id)}
                       aria-label="Remove"
-                      className="shrink-0 rounded p-1 text-red-600 hover:bg-red-50"
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-down hover:bg-silver-light"
                     >
                       <X size={15} />
                     </button>
@@ -227,7 +225,7 @@ export default function AdminEditor() {
               type="button"
               onClick={save}
               disabled={saving || order.length === 0}
-              className="rounded-md bg-ink px-5 py-2 text-sm font-bold text-primary hover:opacity-90 disabled:opacity-50"
+              className="btn btn-primary"
             >
               {saving ? "Saving…" : "Save ranking"}
             </button>
@@ -238,7 +236,7 @@ export default function AdminEditor() {
                   setOrder([]);
                   setStatus(null);
                 }}
-                className="text-sm font-semibold text-silver-deep hover:text-ink"
+                className="text-sm font-medium text-silver-deep hover:text-ink"
               >
                 Clear
               </button>
@@ -247,8 +245,8 @@ export default function AdminEditor() {
               <span
                 className={`text-sm font-semibold ${
                   status.startsWith("Error")
-                    ? "text-red-600"
-                    : "text-emerald-700"
+                    ? "text-down"
+                    : "text-up"
                 }`}
               >
                 {status}
@@ -268,10 +266,10 @@ export default function AdminEditor() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={mode === "players" ? "Search players" : "Search teams"}
-              className="w-full rounded-md border border-silver py-2 pl-8 pr-3 text-sm outline-none focus:border-silver-deep"
+              className="field w-full !rounded-full py-2 pl-8 pr-3"
             />
           </div>
-          <ul className="max-h-[28rem] space-y-1 overflow-y-auto rounded-lg border border-silver p-2">
+          <ul className="panel max-h-[28rem] overflow-y-auto p-1.5">
             {mode === "players"
               ? availablePlayers.map((p) => {
                   const team = getTeam(p.teamId);
@@ -280,7 +278,7 @@ export default function AdminEditor() {
                       <button
                         type="button"
                         onClick={() => add(p.id)}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-silver-light"
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left hover:bg-silver-light"
                       >
                         <PlayerHeadshot playerId={p.id} name={p.name} size={24} />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
@@ -299,7 +297,7 @@ export default function AdminEditor() {
                     <button
                       type="button"
                       onClick={() => add(t.id)}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-silver-light"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left hover:bg-silver-light"
                     >
                       <TeamLogo teamId={t.id} size={22} />
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">

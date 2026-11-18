@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPlayer, getTeam } from "@/data/api";
 import type { GameStatLine, StatCategory, TeamBoxScore } from "@/data/types";
+import TeamLogo from "../TeamLogo";
 
 const COLUMNS: Record<
   StatCategory,
@@ -48,30 +49,30 @@ function StatTable({
   const cols = COLUMNS[category];
   return (
     <div>
-      <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-silver-deep">
+      <h4 className="mb-2 text-sm font-medium text-silver-deep">
         {CATEGORY_TITLE[category]}
       </h4>
-      <div className="overflow-x-auto rounded-lg border border-silver">
-        <table className="w-full min-w-[320px] text-sm">
+      <div className="panel overflow-x-auto">
+        <table className="w-full min-w-[320px]">
           <thead>
-            <tr className="border-b border-silver text-[10px] uppercase text-silver-deep">
-              <th className="px-3 py-1.5 text-left font-semibold">Player</th>
+            <tr className="border-b border-silver">
+              <th className="label px-4 py-2.5 text-left font-medium">Player</th>
               {cols.map((c) => (
-                <th key={c.label} className="px-2 py-1.5 text-center font-semibold">
+                <th key={c.label} className="label px-2 py-2 text-right font-medium">
                   {c.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-silver">
+          <tbody>
             {rows.map((row) => {
               const player = getPlayer(row.playerId);
               return (
-                <tr key={row.playerId}>
-                  <td className="px-3 py-1.5">
+                <tr key={row.playerId} className="border-t border-silver/60 first:border-t-0 hover:bg-silver-light/60">
+                  <td className="px-4 py-2">
                     <Link
                       href={`/player/${row.playerId}`}
-                      className="font-semibold text-ink hover:underline"
+                      className="text-sm font-medium text-ink hover:underline"
                     >
                       {player?.name ?? row.playerId}
                     </Link>
@@ -79,7 +80,7 @@ function StatTable({
                   {cols.map((c) => (
                     <td
                       key={c.label}
-                      className="px-2 py-1.5 text-center tabular-nums"
+                      className="num px-2 py-2 text-right text-sm"
                     >
                       {c.render(row)}
                     </td>
@@ -98,7 +99,8 @@ function TeamBox({ box }: { box: TeamBoxScore }) {
   const team = getTeam(box.teamId);
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-bold text-ink">
+      <h3 className="font-display flex items-center gap-3 text-xl text-ink">
+        {team && <TeamLogo teamId={team.id} size={30} />}
         {team ? `${team.city} ${team.name}` : box.teamId}
       </h3>
       <StatTable category="passing" rows={box.passing} />

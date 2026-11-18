@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import PageContainer from "@/components/PageContainer";
+import PageHeading from "@/components/PageHeading";
 import SupabaseNotice from "@/components/auth/SupabaseNotice";
 import AdminEditor from "@/components/admin/AdminEditor";
 import { isSupabaseConfigured } from "@/utils/supabase/config";
@@ -10,8 +11,8 @@ export default async function AdminPage() {
   if (!isSupabaseConfigured) {
     return (
       <PageContainer>
-        <div className="mx-auto max-w-md py-12">
-          <h1 className="mb-4 text-2xl font-bold text-ink">Admin</h1>
+        <PageHeading title="Admin" />
+        <div className="max-w-xl">
           <SupabaseNotice />
         </div>
       </PageContainer>
@@ -33,16 +34,13 @@ export default async function AdminPage() {
   if (profile?.role !== "admin") {
     return (
       <PageContainer>
-        <div className="mx-auto max-w-md py-16 text-center">
-          <h1 className="mb-2 text-2xl font-bold text-ink">Admins only</h1>
+        <PageHeading title="Admins only" />
+        <div className="max-w-xl">
           <p className="text-silver-deep">
             This area is for the RSO editor. Seed your account as admin in
             Supabase to access it.
           </p>
-          <Link
-            href="/account"
-            className="mt-4 inline-flex rounded-md border border-silver-deep px-4 py-2 text-sm font-bold text-ink hover:bg-silver-light"
-          >
+          <Link href="/account" className="btn btn-outline mt-5">
             Back to account
           </Link>
         </div>
@@ -51,15 +49,12 @@ export default async function AdminPage() {
   }
 
   return (
-    <PageContainer className="pb-12">
-      <div className="py-8">
-        <h1 className="mb-1 text-3xl font-bold text-ink">Admin</h1>
-        <p className="mb-6 text-sm text-silver-deep">
-          Build the Media player rankings and the Media power ranking from a
-          blank sheet — add from the pool, then drag to order and save.
-        </p>
-        <AdminEditor />
-      </div>
+    <PageContainer>
+      <PageHeading title="Admin">
+        Build the Media player rankings and the Media power ranking from a blank
+        sheet. Add from the pool, then drag to order and save.
+      </PageHeading>
+      <AdminEditor />
     </PageContainer>
   );
 }

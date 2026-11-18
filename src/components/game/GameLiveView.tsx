@@ -8,9 +8,9 @@ import GameField from "./GameField";
 type Tab = "field" | "box";
 
 const PLAY_BADGE: Record<string, { label: string; cls: string }> = {
-  pass: { label: "PASS", cls: "bg-blue-100 text-blue-700" },
-  run: { label: "RUN", cls: "bg-emerald-100 text-emerald-700" },
-  sack: { label: "SACK", cls: "bg-red-100 text-red-700" },
+  pass: { label: "Pass", cls: "bg-ink text-primary" },
+  run: { label: "Run", cls: "bg-silver-light text-ink" },
+  sack: { label: "Sack", cls: "bg-down/10 text-down" },
 };
 
 export default function GameLiveView({
@@ -63,17 +63,15 @@ export default function GameLiveView({
 
   return (
     <div>
-      <div className="mb-3 flex gap-6 border-b border-silver">
+      <div role="tablist" aria-label="Game view" className="tabs mb-5">
         {(["field", "box"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
+            role="tab"
+            aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-1 pb-2 text-base font-bold transition-colors ${
-              tab === t
-                ? "border-ink text-ink"
-                : "border-transparent text-silver-deep hover:text-ink"
-            }`}
+            className="tab"
           >
             {t === "field" ? "Play-by-Play" : "Box Score"}
           </button>
@@ -101,51 +99,50 @@ export default function GameLiveView({
 
           {/* Current play callout */}
           {play && (
-            <div className="rounded-lg border border-silver bg-silver-light/40 p-3">
-              <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-silver-deep">
-                <span>Last play</span>
-                <span>·</span>
-                <span>
+            <div className="panel px-5 py-4">
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-silver-deep">Last play</span>
+                <span className="num text-xs text-silver-deep">
                   Q{play.quarter} {play.clock}
                 </span>
-                <span
-                  className={`rounded px-1 py-0.5 text-[9px] font-bold ${PLAY_BADGE[play.playType].cls}`}
-                >
+                <span className={`tag ${PLAY_BADGE[play.playType].cls}`}>
                   {PLAY_BADGE[play.playType].label}
                 </span>
                 {play.scoring && (
-                  <span className="font-bold text-emerald-700">· Score</span>
+                  <span className="tag bg-up/10 text-up">
+                    Score
+                  </span>
                 )}
               </div>
-              <p className="text-sm font-semibold text-ink">{play.description}</p>
+              <p className="font-medium text-ink">{play.description}</p>
             </div>
           )}
 
           {/* Play list */}
           <ol
             ref={listRef}
-            className="relative max-h-72 space-y-1 overflow-y-auto rounded-lg border border-silver p-2"
+            className="panel relative max-h-80 overflow-y-auto p-1.5"
           >
             {plays.map((p, i) => (
               <li
                 key={p.id}
                 ref={i === idx ? activeRef : undefined}
                 onClick={() => setIdx(i)}
-                className={`cursor-pointer rounded px-2 py-1.5 text-sm ${
+                className={`flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2 text-sm ${
                   i === idx
-                    ? "bg-silver-light font-semibold text-ink ring-1 ring-inset ring-ink/20"
-                    : "text-silver-deep hover:bg-silver-light/60"
+                    ? "bg-silver-light font-medium text-ink"
+                    : "text-silver-deep hover:bg-silver-light hover:text-ink"
                 }`}
               >
-                <span className="mr-2 text-[10px] font-bold uppercase tabular-nums text-silver-deep">
+                <span className="num w-16 shrink-0 pt-0.5 text-xs">
                   Q{p.quarter} {p.clock}
                 </span>
                 <span
-                  className={`mr-2 rounded px-1 py-0.5 text-[9px] font-bold ${PLAY_BADGE[p.playType].cls}`}
+                  className={`tag mt-0.5 w-12 shrink-0 justify-center ${PLAY_BADGE[p.playType].cls}`}
                 >
                   {PLAY_BADGE[p.playType].label}
                 </span>
-                {p.description}
+                <span>{p.description}</span>
               </li>
             ))}
           </ol>

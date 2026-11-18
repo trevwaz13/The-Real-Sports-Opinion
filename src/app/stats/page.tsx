@@ -4,14 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { getPlayersByPosition, getTeam } from "@/data/api";
-import { STATS_SEASON_YEAR } from "@/data/season";
+import { LAST_COMPLETED_WEEK, STATS_SEASON_YEAR } from "@/data/season";
 import type { PlayerStats, Position } from "@/data/types";
 import { STATS_COLUMNS, STAT_FULL_NAMES } from "@/lib/statsColumns";
 import { formatStat } from "@/lib/statLines";
 import PageContainer from "@/components/PageContainer";
+import PageHeading from "@/components/PageHeading";
 import PlayerHeadshot from "@/components/PlayerHeadshot";
 import PositionTabs from "@/components/PositionTabs";
-import PreseasonBadge from "@/components/PreseasonBadge";
 
 type SortKey = "name" | keyof PlayerStats;
 type SortDir = "asc" | "desc";
@@ -63,137 +63,149 @@ export default function StatsPage() {
     });
 
   return (
-    <PageContainer className="pb-12">
-      <section className="py-8">
-        <div className="mb-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-bold text-ink">Stats</h1>
-          <PreseasonBadge />
-        </div>
+    <PageContainer>
+      <PageHeading title="Stats" badge />
 
-        {/* Season type + year tabs */}
-        <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-silver">
-          <div className="flex gap-5">
-            <span className="-mb-px border-b-2 border-ink pb-2 text-sm font-bold text-ink">
-              Regular Season
-            </span>
-            <span
-              className="-mb-px cursor-not-allowed border-b-2 border-transparent pb-2 text-sm font-bold text-silver"
-              title="No playoff data yet"
-            >
-              Playoffs
-            </span>
-          </div>
-          <div className="flex gap-3 pb-2">
-            <span className="rounded-full border border-ink bg-ink px-3 py-0.5 text-xs font-bold text-primary">
-              {STATS_SEASON_YEAR}
-            </span>
-          </div>
+      {/* Season type + year */}
+      <div className="tabs mb-5 items-end">
+        <div role="tablist" aria-label="Season type" className="contents">
+          <span role="tab" aria-selected="true" className="tab">
+            Regular Season
+          </span>
+          <span
+            role="tab"
+            aria-selected="false"
+            aria-disabled="true"
+            className="tab cursor-not-allowed opacity-50"
+            title="No playoff data yet"
+          >
+            Playoffs
+          </span>
         </div>
+        <span className="tag mb-2 ml-auto border border-silver bg-band text-silver-deep">
+          {STATS_SEASON_YEAR} season
+        </span>
+      </div>
 
-        {/* Position filter + search */}
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <PositionTabs value={position} onChange={changePosition} />
-          <div className="relative">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-silver-deep"
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search player"
-              className="w-48 rounded-md border border-silver py-1.5 pl-8 pr-3 text-sm text-ink outline-none placeholder:text-silver-deep focus:border-silver-deep"
-            />
-          </div>
-        </div>
+      {/* Position filter + search */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <PositionTabs value={position} onChange={changePosition} />
+        <label className="relative">
+          <span className="sr-only">Search player</span>
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-silver-deep"
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search player"
+            className="field w-56 !rounded-full py-1.5 pl-8 pr-3"
+          />
+        </label>
+      </div>
 
-        {/* Stat table */}
-        <div className="overflow-x-auto rounded-lg border border-silver">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-              <tr className="border-b border-silver bg-silver-light/50 text-xs uppercase text-silver-deep">
+      {/* Stat table */}
+      <div className="panel overflow-x-auto">
+        <table className="w-full min-w-[760px]">
+          <thead>
+            <tr className="border-b border-silver bg-band">
+              <th
+                onClick={() => sortBy("name")}
+                className={`label sticky left-0 z-10 cursor-pointer bg-band px-4 py-3 text-left font-medium hover:text-ink ${
+                  sortKey === "name" ? "!text-ink" : ""
+                }`}
+              >
+                Player {sortIcon(sortKey === "name", sortDir)}
+              </th>
+              {table.columns.map((col) => (
                 <th
-                  onClick={() => sortBy("name")}
-                  className="sticky left-0 z-10 cursor-pointer bg-silver-light px-3 py-2 text-left font-semibold hover:text-ink"
+                  key={col.key}
+                  onClick={() => sortBy(col.key)}
+                  title={STAT_FULL_NAMES[col.key]}
+                  aria-sort={
+                    sortKey === col.key
+                      ? sortDir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
+                  className={`label cursor-pointer whitespace-nowrap px-2.5 py-3 text-right font-medium hover:text-ink ${
+                    sortKey === col.key ? "!font-semibold !text-ink" : ""
+                  }`}
                 >
-                  Player {sortIcon(sortKey === "name", sortDir)}
+                  {col.label} {sortIcon(sortKey === col.key, sortDir)}
                 </th>
-                {table.columns.map((col) => (
-                  <th
-                    key={col.key}
-                    onClick={() => sortBy(col.key)}
-                    title={STAT_FULL_NAMES[col.key]}
-                    className={`cursor-pointer px-2.5 py-2 text-center font-semibold hover:text-ink ${
-                      sortKey === col.key ? "text-ink" : ""
-                    }`}
-                  >
-                    {col.label} {sortIcon(sortKey === col.key, sortDir)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-silver">
-              {players.map((player) => {
-                const team = getTeam(player.teamId);
-                return (
-                  <tr key={player.id} className="hover:bg-silver-light/40">
-                    <td className="sticky left-0 z-10 bg-primary px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/player/${player.id}`} className="shrink-0">
-                          <PlayerHeadshot
-                            playerId={player.id}
-                            name={player.name}
-                            size={26}
-                          />
-                        </Link>
-                        <Link
-                          href={`/player/${player.id}`}
-                          className="font-semibold text-ink hover:underline"
-                        >
-                          {player.name}
-                        </Link>
-                        {team && (
-                          <span className="text-xs text-silver-deep">
-                            {team.abbreviation}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    {table.columns.map((col) => (
-                      <td
-                        key={col.key}
-                        className={`px-2.5 py-2 text-center tabular-nums ${
-                          sortKey === col.key
-                            ? "font-bold text-ink"
-                            : "text-silver-deep"
-                        }`}
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((player, i) => {
+              const team = getTeam(player.teamId);
+              return (
+                <tr
+                  key={player.id}
+                  className="group border-t border-silver/60 first:border-t-0 hover:bg-silver-light/60"
+                >
+                  <td className="sticky left-0 z-10 bg-surface px-4 py-2 group-hover:bg-silver-light">
+                    <div className="flex items-center gap-2.5">
+                      <span className="num w-5 text-right text-xs text-silver-deep">
+                        {i + 1}
+                      </span>
+                      <Link href={`/player/${player.id}`} className="shrink-0">
+                        <PlayerHeadshot
+                          playerId={player.id}
+                          name={player.name}
+                          size={28}
+                        />
+                      </Link>
+                      <Link
+                        href={`/player/${player.id}`}
+                        className="whitespace-nowrap text-sm font-medium text-ink hover:underline"
                       >
-                        {formatStat(player.seasonStats[col.key], col.decimals)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-              {players.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={table.columns.length + 1}
-                    className="px-3 py-10 text-center text-silver-deep"
-                  >
-                    No players match “{search}”.
+                        {player.name}
+                      </Link>
+                      {team && (
+                        <span className="text-xs text-silver-deep">
+                          {team.abbreviation}
+                        </span>
+                      )}
+                    </div>
                   </td>
+                  {table.columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`num px-2.5 py-2 text-right text-sm ${
+                        sortKey === col.key
+                          ? "bg-silver-light/50 font-semibold text-ink"
+                          : "text-silver-deep"
+                      }`}
+                    >
+                      {formatStat(player.seasonStats[col.key], col.decimals)}
+                    </td>
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              );
+            })}
+            {players.length === 0 && (
+              <tr>
+                <td
+                  colSpan={table.columns.length + 1}
+                  className="px-3 py-12 text-center text-silver-deep"
+                >
+                  No players match &ldquo;{search}&rdquo;.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-        <p className="mt-3 text-xs text-silver-deep">
-          Showing {STATS_SEASON_YEAR} regular-season stats. Live {STATS_SEASON_YEAR + 1}{" "}
-          stats update here once the season kicks off.
-        </p>
-      </section>
+      <p className="mt-3 text-sm text-silver-deep">
+        {STATS_SEASON_YEAR} regular-season totals through week{" "}
+        {LAST_COMPLETED_WEEK}. Refreshed from nflverse after each slate.
+      </p>
     </PageContainer>
   );
 }

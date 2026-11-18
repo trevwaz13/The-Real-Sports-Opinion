@@ -1,26 +1,45 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowUpRight } from "lucide-react";
 
-// Consistent home-page section header with an optional "View all" link.
+// Section header: title with an optional one-line description, optional
+// controls, and an optional "View all" link on the right.
 export default function SectionHeader({
   title,
+  description,
   href,
   linkLabel = "View all",
+  children,
 }: {
   title: string;
+  description?: string;
   href?: string;
   linkLabel?: string;
+  children?: ReactNode;
 }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-silver pb-2">
-      <h2 className="text-xl font-bold text-ink sm:text-2xl">{title}</h2>
+    <div className="mb-5 flex flex-wrap items-end gap-x-5 gap-y-3">
+      <div className="mr-auto">
+        <h2 className="font-display text-2xl leading-tight text-ink sm:text-[1.75rem]">
+          {title}
+        </h2>
+        {description && (
+          <p className="mt-1 text-sm text-silver-deep">{description}</p>
+        )}
+      </div>
+      {children}
       {href && (
         <Link
           href={href}
-          className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-silver-deep transition-colors hover:text-ink"
+          className="group inline-flex shrink-0 items-center gap-1 pb-1 text-sm font-medium text-ink"
         >
-          {linkLabel}
-          <ChevronRight size={16} />
+          <span className="border-b border-silver transition-colors group-hover:border-ink">
+            {linkLabel}
+          </span>
+          <ArrowUpRight
+            size={15}
+            className="text-silver-deep transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink"
+          />
         </Link>
       )}
     </div>

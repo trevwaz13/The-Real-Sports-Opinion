@@ -1,10 +1,12 @@
 import Link from "next/link";
-import PageContainer from "@/components/PageContainer";
-import RsoLogo from "@/components/RsoLogo";
 import { isSupabaseConfigured } from "@/utils/supabase/config";
 import { login, signInWithGoogle } from "@/app/auth/actions";
-import SupabaseNotice from "@/components/auth/SupabaseNotice";
+import AuthShell from "@/components/auth/AuthShell";
+import FormField from "@/components/auth/FormField";
+import FormMessage from "@/components/auth/FormMessage";
 import GoogleButton from "@/components/auth/GoogleButton";
+import OrDivider from "@/components/auth/OrDivider";
+import SupabaseNotice from "@/components/auth/SupabaseNotice";
 
 export default async function LoginPage({
   searchParams,
@@ -14,88 +16,53 @@ export default async function LoginPage({
   const { error, message, next = "/account" } = await searchParams;
 
   return (
-    <PageContainer>
-      <div className="mx-auto max-w-sm py-12">
-        <div className="mb-6 flex justify-center">
-          <RsoLogo height={56} />
-        </div>
-        <h1 className="mb-1 text-center text-2xl font-bold text-ink">Sign in</h1>
-        <p className="mb-6 text-center text-sm text-silver-deep">
-          Welcome back to RSO.
-        </p>
+    <AuthShell title="Sign in" subtitle="Welcome back to RSO.">
+      {!isSupabaseConfigured ? (
+        <SupabaseNotice />
+      ) : (
+        <>
+          {message && <FormMessage tone="success">{message}</FormMessage>}
+          {error && <FormMessage tone="error">{error}</FormMessage>}
 
-        {!isSupabaseConfigured ? (
-          <SupabaseNotice />
-        ) : (
-          <>
-            {message && (
-              <p className="mb-4 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                {message}
-              </p>
-            )}
-            {error && (
-              <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {error}
-              </p>
-            )}
+          <form action={signInWithGoogle}>
+            <input type="hidden" name="next" value={next} />
+            <GoogleButton label="Continue with Google" />
+          </form>
 
-            <form action={signInWithGoogle}>
-              <input type="hidden" name="next" value={next} />
-              <GoogleButton label="Continue with Google" />
-            </form>
+          <OrDivider />
 
-            <div className="my-5 flex items-center gap-3 text-xs text-silver-deep">
-              <span className="h-px flex-1 bg-silver" />
-              OR
-              <span className="h-px flex-1 bg-silver" />
-            </div>
+          <form action={login} className="space-y-4">
+            <input type="hidden" name="next" value={next} />
+            <FormField
+              label="Email"
+              type="email"
+              name="email"
+              required
+              autoComplete="email"
+            />
+            <FormField
+              label="Password"
+              type="password"
+              name="password"
+              required
+              autoComplete="current-password"
+            />
+            <button type="submit" className="btn btn-primary w-full !py-2.5">
+              Sign in
+            </button>
+          </form>
 
-            <form action={login} className="space-y-3">
-              <input type="hidden" name="next" value={next} />
-              <label className="block">
-                <span className="mb-1 block text-sm font-semibold text-ink">
-                  Email
-                </span>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  autoComplete="email"
-                  className="w-full rounded-md border border-silver px-3 py-2 text-sm text-ink outline-none focus:border-silver-deep"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-semibold text-ink">
-                  Password
-                </span>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  autoComplete="current-password"
-                  className="w-full rounded-md border border-silver px-3 py-2 text-sm text-ink outline-none focus:border-silver-deep"
-                />
-              </label>
-              <button
-                type="submit"
-                className="w-full rounded-md bg-ink py-2 text-sm font-bold text-primary transition-opacity hover:opacity-90"
-              >
-                Sign in
-              </button>
-            </form>
-
-            <p className="mt-5 text-center text-sm text-silver-deep">
-              New to RSO?{" "}
-              <Link
-                href="/signup"
-                className="font-bold text-ink hover:underline"
-              >
-                Create an account
-              </Link>
-            </p>
-          </>
-        )}
-      </div>
-    </PageContainer>
+          <p className="mt-6 text-sm text-silver-deep">
+            New to RSO?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-ink underline underline-offset-4 hover:no-underline"
+            >
+              Create an account
+            </Link>
+          </p>
+        </>
+      )}
+    </AuthShell>
   );
 }

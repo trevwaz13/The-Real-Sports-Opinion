@@ -57,17 +57,17 @@ export default function BallotBuilder({
       : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-surface shadow-xl">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgb(5_5_6/0.55)] p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-silver bg-surface shadow-float">
         <div className="flex items-center justify-between border-b border-silver px-4 py-3">
-          <h2 className="text-lg font-bold text-ink">
+          <h2 className="font-display text-lg text-ink">
             {shared ? "Ballot submitted" : `Your ${position} ballot`}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-1 text-silver-deep hover:bg-silver-light hover:text-ink"
+            className="grid h-8 w-8 place-items-center rounded-full text-silver-deep hover:bg-silver-light hover:text-ink"
           >
             <X size={18} />
           </button>
@@ -75,7 +75,7 @@ export default function BallotBuilder({
 
         {shared ? (
           <div className="space-y-4 p-6 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink text-primary">
               <Check size={24} />
             </div>
             <p className="text-sm text-silver-deep">
@@ -86,7 +86,7 @@ export default function BallotBuilder({
               <input
                 readOnly
                 value={shareUrl}
-                className="flex-1 truncate rounded-md border border-silver px-3 py-2 text-sm text-silver-deep"
+                className="field flex-1 truncate px-3 py-2 text-sm text-silver-deep"
               />
               <button
                 type="button"
@@ -94,7 +94,7 @@ export default function BallotBuilder({
                   navigator.clipboard?.writeText(shareUrl);
                   setCopied(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-sm font-bold text-primary hover:opacity-90"
+                className="btn btn-primary"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Copied" : "Copy"}
@@ -103,7 +103,7 @@ export default function BallotBuilder({
             <button
               type="button"
               onClick={onClose}
-              className="text-sm font-semibold text-silver-deep hover:text-ink"
+              className="text-sm font-medium text-silver-deep hover:text-ink"
             >
               Done
             </button>
@@ -112,7 +112,8 @@ export default function BallotBuilder({
           <>
             {/* Ballot type */}
             <div className="flex items-center gap-2 border-b border-silver px-4 py-3">
-              <span className="text-sm font-semibold text-ink">Ballot:</span>
+              <span className="label">Ballot</span>
+              <div className="chips chips-sm">
               {(["top10", "top20"] as BallotType[]).map((t) => (
                 <button
                   key={t}
@@ -121,16 +122,13 @@ export default function BallotBuilder({
                     setBallotType(t);
                     if (t === "top10") setBallot((b) => b.slice(0, 10));
                   }}
-                  className={`rounded-full border px-3 py-1 text-sm font-semibold ${
-                    ballotType === t
-                      ? "border-ink bg-ink text-primary"
-                      : "border-silver text-silver-deep hover:bg-silver-light"
-                  }`}
+                  data-active={ballotType === t}
                 >
                   {t === "top10" ? "Top 10" : "Top 20"}
                 </button>
               ))}
-              <span className="ml-auto text-xs text-silver-deep">
+              </div>
+              <span className="num ml-auto text-sm font-medium text-ink">
                 {ballot.length} / {limit}
               </span>
             </div>
@@ -138,12 +136,12 @@ export default function BallotBuilder({
             <div className="grid flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 sm:grid-cols-2">
               {/* Your ballot */}
               <div>
-                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-silver-deep">
+                <h3 className="label mb-2">
                   Your ballot
                 </h3>
                 {ballot.length === 0 ? (
-                  <p className="rounded-md border border-dashed border-silver px-3 py-6 text-center text-sm text-silver-deep">
-                    Add players from the right →
+                  <p className="rounded-xl border border-dashed border-silver px-3 py-8 text-center text-sm text-silver-deep">
+                    Add players from the list
                   </p>
                 ) : (
                   <ol className="space-y-1">
@@ -155,9 +153,9 @@ export default function BallotBuilder({
                       return (
                         <li
                           key={id}
-                          className="flex items-center gap-2 rounded-md border border-silver px-2 py-1.5"
+                          className="flex items-center gap-2 rounded-xl border border-silver bg-primary px-2.5 py-1.5"
                         >
-                          <span className="w-5 text-right text-sm font-bold tabular-nums text-silver-deep">
+                          <span className="num w-5 text-right text-sm text-silver-deep">
                             {i + 1}
                           </span>
                           <span className="flex-1 truncate text-sm font-semibold text-ink">
@@ -171,7 +169,7 @@ export default function BallotBuilder({
                             onClick={() => move(i, -1)}
                             disabled={i === 0}
                             aria-label="Up"
-                            className="rounded p-0.5 text-ink hover:bg-silver-light disabled:opacity-30"
+                            className="grid h-6 w-6 place-items-center rounded-full text-ink hover:bg-silver-light disabled:opacity-30"
                           >
                             <ArrowUp size={14} />
                           </button>
@@ -180,7 +178,7 @@ export default function BallotBuilder({
                             onClick={() => move(i, 1)}
                             disabled={i === ballot.length - 1}
                             aria-label="Down"
-                            className="rounded p-0.5 text-ink hover:bg-silver-light disabled:opacity-30"
+                            className="grid h-6 w-6 place-items-center rounded-full text-ink hover:bg-silver-light disabled:opacity-30"
                           >
                             <ArrowDown size={14} />
                           </button>
@@ -190,7 +188,7 @@ export default function BallotBuilder({
                               setBallot(ballot.filter((x) => x !== id))
                             }
                             aria-label="Remove"
-                            className="rounded p-0.5 text-red-600 hover:bg-red-50"
+                            className="grid h-6 w-6 place-items-center rounded-full text-down hover:bg-silver-light"
                           >
                             <X size={14} />
                           </button>
@@ -212,7 +210,7 @@ export default function BallotBuilder({
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search players"
-                    className="w-full rounded-md border border-silver py-1.5 pl-8 pr-3 text-sm outline-none focus:border-silver-deep"
+                    className="field w-full !rounded-full py-1.5 pl-8 pr-3"
                   />
                 </div>
                 <ul className="max-h-72 space-y-1 overflow-y-auto">
@@ -225,7 +223,7 @@ export default function BallotBuilder({
                           type="button"
                           disabled={full}
                           onClick={() => setBallot([...ballot, player.id])}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-silver-light disabled:opacity-40"
+                          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-silver-light disabled:opacity-40"
                         >
                           <PlayerHeadshot
                             playerId={player.id}
@@ -235,7 +233,7 @@ export default function BallotBuilder({
                           <span className="flex-1 truncate text-sm font-semibold text-ink">
                             {player.name}
                           </span>
-                          <span className="text-xs text-silver-deep">
+                          <span className="label">
                             {team?.abbreviation}
                           </span>
                         </button>
@@ -251,12 +249,12 @@ export default function BallotBuilder({
                 type="button"
                 onClick={onSubmit}
                 disabled={submitting || ballot.length === 0}
-                className="rounded-md bg-ink px-5 py-2 text-sm font-bold text-primary hover:opacity-90 disabled:opacity-50"
+                className="btn btn-primary"
               >
                 {submitting ? "Submitting…" : "Submit ballot"}
               </button>
               {error && (
-                <span className="text-sm font-semibold text-red-600">
+                <span className="text-sm font-semibold text-down">
                   {error}
                 </span>
               )}

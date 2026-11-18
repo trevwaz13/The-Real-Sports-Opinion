@@ -39,7 +39,7 @@ export default function AuthButton({ onNavigate }: { onNavigate?: () => void }) 
     <Link
       href="/login"
       onClick={onNavigate}
-      className="inline-flex rounded-md border border-silver-deep px-4 py-1.5 text-[15px] font-bold text-ink transition-colors hover:bg-silver-light"
+      className="btn btn-outline !py-1.5"
     >
       Sign in
     </Link>
@@ -58,28 +58,29 @@ export default function AuthButton({ onNavigate }: { onNavigate?: () => void }) 
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-silver-deep px-3 py-1.5 text-[15px] font-bold text-ink transition-colors hover:bg-silver-light"
+        aria-expanded={open}
+        className="btn btn-outline !py-1.5"
       >
         <UserRound size={16} />
         <span className="max-w-[8rem] truncate">{name}</span>
         <ChevronDown size={14} />
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-md border border-silver bg-surface shadow-lg">
+        <div className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border border-silver bg-surface p-1 text-ink shadow-float">
           <Link
             href="/account"
             onClick={() => {
               setOpen(false);
               onNavigate?.();
             }}
-            className="block px-4 py-2 text-sm font-semibold text-ink hover:bg-silver-light"
+            className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-silver-light"
           >
             Your account
           </Link>
           <form action={signOut}>
             <button
               type="submit"
-              className="block w-full border-t border-silver px-4 py-2 text-left text-sm font-semibold text-ink hover:bg-silver-light"
+              className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-silver-light"
             >
               Sign out
             </button>

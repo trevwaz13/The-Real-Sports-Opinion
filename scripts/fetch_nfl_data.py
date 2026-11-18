@@ -1,17 +1,21 @@
-"""Fetch real NFL teams + players from nflreadpy (nflverse) and emit JSON that
-matches the app's TypeScript Team/Player/PlayerStats types.
+"""Fetch real NFL data from nflreadpy (nflverse) and emit JSON that matches the
+app's TypeScript types.
+
+Pulls the season that is currently being played: team records, rosters, player
+stats, the full schedule (played + upcoming), weekly box scores, weekly fantasy
+points, and the league injury report.
 
 Run:  python3 scripts/fetch_nfl_data.py
-Output: src/data/real/teams.json, src/data/real/players.json
+Output: src/data/real/*.json
 """
 
+import datetime as dt
 import json
 import os
 import polars as pl
 import nflreadpy as nfl
 
-SEASON = 2025        # stats we display (numbers) until the 2026 season is played
-ROSTER_SEASON = 2026  # team assignments (who's on which team) from the offseason
+SEASON = 2026         # the season being played
 CAREER_FROM = 2015
 OUT = os.path.join(os.path.dirname(__file__), "..", "src", "data", "real")
 
@@ -216,6 +220,61 @@ def player_key(r):
     return None
 
 
+LEAGUE_MINIMUM_APY = 1.1  # $M, roughly a veteran-minimum deal
+
+
+def contract_map():
+    """gsis_id -> average annual value ($M) of the player's active contract,
+    from OverTheCap via nflverse."""
+    try:
+        contracts = nfl.load_contracts()
+    except Exception:
+        return {}
+    out = {}
+    for r in contracts.iter_rows(named=True):
+        pid, apy = r.get("gsis_id"), r.get("apy")
+        if not pid or apy is None:
+            continue
+        if not r.get("is_active"):
+            continue
+        # Keep the richest active deal if a player somehow has more than one.
+        if apy > out.get(pid, 0):
+            out[pid] = round(float(apy), 2)
+    return out
+
+
+def injury_map():
+    """gsis_id -> injury status from the most recent league injury report.
+    nflverse report_status is Out / Doubtful / Questionable (blank = cleared)."""
+    try:
+        inj = nfl.load_injuries([SEASON])
+    except Exception:
+        return {}
+    latest = {}
+    for r in inj.iter_rows(named=True):
+        pid = r.get("gsis_id")
+        if not pid:
+            continue
+        wk = int(r.get("week") or 0)
+        prev = latest.get(pid)
+        if prev is None or wk >= prev[0]:
+            latest[pid] = (wk, r)
+
+    status = {}
+    for pid, (_wk, r) in latest.items():
+        report = (r.get("report_status") or "").strip().lower()
+        practice = (r.get("practice_status") or "").strip().lower()
+        if report == "out":
+            status[pid] = ("out", r)
+        elif report == "doubtful":
+            status[pid] = ("doubtful", r)
+        elif report == "questionable":
+            status[pid] = ("questionable", r)
+        elif "did not participate" in practice:
+            status[pid] = ("questionable", r)
+    return status
+
+
 def roster_map(season):
     """player id -> latest roster row (jersey, age, exp, names, headshot, status, team)."""
     rmap = {}
@@ -227,13 +286,15 @@ def roster_map(season):
 
 
 def build_players():
+    injuries = injury_map()
+    contracts = contract_map()
     season_stats = nfl.load_player_stats(seasons=[SEASON], summary_level="reg")
     stat_by_id = {r["player_id"]: r for r in season_stats.iter_rows(named=True)}
 
-    # The 2026 offseason roster is the source of truth for who's on a team.
-    # 2025 stats are attached when they exist; rookies (2026 draft class) and
-    # players who missed 2025 injured appear with empty stats.
-    rmap = roster_map(ROSTER_SEASON)
+    # The current roster is the source of truth for who's on a team. Season
+    # stats are attached when they exist; players who have not taken a snap yet
+    # appear with an empty line.
+    rmap = roster_map(SEASON)
 
     # career: aggregate counting stats across seasons
     career_years = list(range(CAREER_FROM, SEASON + 1))
@@ -284,7 +345,7 @@ def build_players():
         first = ros.get("first_name") or name.split(" ")[0]
         last = ros.get("last_name") or (name.split(" ")[-1] if " " in name else "")
         bd = ros.get("birth_date")
-        age = (ROSTER_SEASON - int(str(bd)[:4])) if bd else 26
+        age = (SEASON - int(str(bd)[:4])) if bd else 26
         yrs = ros.get("years_exp")
         years_pro = int(yrs) if yrs is not None else 0
 
@@ -303,9 +364,14 @@ def build_players():
             "jerseyNumber": int(ros.get("jersey_number") or 0),
             "age": int(age),
             "yearsPro": max(0, years_pro),
-            "injuryStatus": "ir" if status in ("RES", "INA", "PUP", "IR") else "healthy",
+            "injuryStatus": (
+                "ir"
+                if status in ("RES", "INA", "PUP", "IR", "EXE", "TRT", "TRC")
+                else injuries.get(pid, ("healthy", None))[0]
+            ),
             "isFreeAgent": False,
-            # Empty 2025 line for rookies / players who missed the season.
+            "capHit": contracts.get(pid, LEAGUE_MINIMUM_APY),
+            # Empty line for players who have not recorded a stat yet.
             "seasonStats": build_stats(stat) if stat else {"gamesPlayed": 0},
             "careerStats": build_stats(
                 cmap.get(pid, {"games": (stat.get("games") if stat else 0)})
@@ -360,32 +426,42 @@ def leaders_from_lines(lines):
     return res
 
 
+def current_week(sched):
+    """The week being played now: the first week that still has an unplayed
+    game, else the last week of the season."""
+    unplayed = [
+        int(g["week"]) for g in sched.iter_rows(named=True) if g.get("result") is None
+    ]
+    if unplayed:
+        return min(unplayed)
+    played = [int(g["week"]) for g in sched.iter_rows(named=True)]
+    return max(played) if played else 1
+
+
 def build_games(gstats):
-    sc = nfl.load_schedules(seasons=[SEASON]).filter(
-        (pl.col("game_type") == "REG") & pl.col("result").is_not_null()
-    )
+    """Every regular-season game: finals with scores and box-score leaders,
+    plus the upcoming slate with kickoff times and betting lines."""
+    sc = nfl.load_schedules(seasons=[SEASON]).filter(pl.col("game_type") == "REG")
     out = []
     for g in sc.iter_rows(named=True):
         h, a = fix_abbr(g["home_team"]), fix_abbr(g["away_team"])
         if h not in CURRENT or a not in CURRENT:
             continue
-        spread = g.get("spread_line")
         wk = int(g["week"])
-        out.append({
-            "cardLeaders": {
-                "home": leaders_from_lines(gstats.get(f"{wk}-{h}", [])),
-                "away": leaders_from_lines(gstats.get(f"{wk}-{a}", [])),
-            },
-            "id": f"w{g['week']}-{h}-{a}",
-            "week": int(g["week"]),
+        final = g.get("result") is not None
+        spread = g.get("spread_line")
+        game = {
+            "id": f"w{wk}-{h}-{a}",
+            "week": wk,
             "homeTeamId": h,
             "awayTeamId": a,
-            "status": "final",
-            "homeScore": int(g["home_score"]),
-            "awayScore": int(g["away_score"]),
-            "quarter": 5 if g.get("overtime") else 4,
-            "clock": "0:00",
+            "status": "final" if final else "scheduled",
+            "homeScore": int(g["home_score"]) if final else 0,
+            "awayScore": int(g["away_score"]) if final else 0,
+            "quarter": (5 if g.get("overtime") else 4) if final else 1,
+            "clock": "0:00" if final else "15:00",
             "kickoff": kickoff_label(g.get("weekday"), g.get("gametime")),
+            "gameday": g.get("gameday") or "",
             # app spread is home-perspective (negative = home favored);
             # nflverse spread_line is positive when the home team is favored.
             "spread": round(-spread, 1) if spread is not None else 0,
@@ -394,7 +470,13 @@ def build_games(gstats):
                 "home": int(g["home_moneyline"]) if g.get("home_moneyline") is not None else 0,
                 "away": int(g["away_moneyline"]) if g.get("away_moneyline") is not None else 0,
             },
-        })
+        }
+        if final:
+            game["cardLeaders"] = {
+                "home": leaders_from_lines(gstats.get(f"{wk}-{h}", [])),
+                "away": leaders_from_lines(gstats.get(f"{wk}-{a}", [])),
+            }
+        out.append(game)
     return out
 
 
@@ -443,9 +525,9 @@ def build_game_stats():
 
 
 def build_free_agents(rostered_ids, cmap):
-    """Notable 2025 producers who aren't on a 2026 offseason roster."""
+    """Notable producers who are not on a current roster."""
     stats = nfl.load_player_stats(seasons=[SEASON], summary_level="reg")
-    rmap = roster_map(SEASON)  # 2025 bio for players now off a roster
+    rmap = roster_map(SEASON)  # bio for players now off a roster
 
     from collections import defaultdict
     byp = defaultdict(list)
@@ -464,7 +546,7 @@ def build_free_agents(rostered_ids, cmap):
             ros = rmap.get(pid, {})
             name = row.get("player_display_name") or ros.get("full_name") or pid
             bd = ros.get("birth_date")
-            age = (ROSTER_SEASON - int(str(bd)[:4])) if bd else 28
+            age = (SEASON - int(str(bd)[:4])) if bd else 28
             yrs = ros.get("years_exp")
             out.append({
                 "id": pid,
@@ -486,6 +568,158 @@ def build_free_agents(rostered_ids, cmap):
     return out
 
 
+def build_weekly_fantasy():
+    """Real PPR fantasy points per player per week: {week: {playerId: points}}."""
+    w = nfl.load_player_stats(seasons=[SEASON], summary_level="week")
+    out = {}
+    for row in w.iter_rows(named=True):
+        pts = num(row.get("fantasy_points_ppr"))
+        if not pts:
+            continue
+        wk = str(int(row["week"]))
+        out.setdefault(wk, {})[row["player_id"]] = round(float(pts), 1)
+    return out
+
+
+def ordinal_day(date_str):
+    """'2026-11-15' -> 'Nov 15'."""
+    try:
+        d = dt.date.fromisoformat(date_str)
+        return f"{d.strftime('%b')} {d.day}"
+    except Exception:
+        return ""
+
+
+def build_news(games, players_by_id, gstats, week, team_names):
+    """A league feed derived entirely from the data we already have: the biggest
+    performances of the last completed week, this week's injury designations,
+    and the marquee matchups coming up. No invented reporting."""
+    feed = []
+    name = lambda pid: (players_by_id.get(pid) or {}).get("name") or pid
+    tname = lambda abbr: team_names.get(abbr, abbr)
+
+    finals = [g for g in games if g["status"] == "final"]
+    last_week = max((g["week"] for g in finals), default=0)
+    last_games = [g for g in finals if g["week"] == last_week]
+    played_on = ordinal_day(max((g.get("gameday") or "" for g in last_games), default=""))
+
+    # 1. Standout individual performances from the last completed week.
+    lines = []
+    for g in last_games:
+        for team in (g["homeTeamId"], g["awayTeamId"]):
+            for ln in gstats.get(f"{last_week}-{team}", []):
+                lines.append((team, g, ln))
+
+    def top(metric, minimum):
+        best = sorted(lines, key=lambda x: -num(x[2].get(metric)))
+        return [x for x in best if num(x[2].get(metric)) >= minimum][:1]
+
+    for metric, minimum, phrase in (
+        ("passYds", 300, "threw for {v} yards"),
+        ("rushYds", 100, "ran for {v} yards"),
+        ("recYds", 120, "piled up {v} receiving yards"),
+    ):
+        for team, g, ln in top(metric, minimum):
+            pid = ln["playerId"]
+            home = team == g["homeTeamId"]
+            opp = g["awayTeamId"] if home else g["homeTeamId"]
+            own_score = g["homeScore"] if home else g["awayScore"]
+            opp_score = g["awayScore"] if home else g["homeScore"]
+            tds = num(ln.get("passTD")) + num(ln.get("rushTD")) + num(ln.get("recTD"))
+            if own_score > opp_score:
+                result = f"{tname(team)} beat {tname(opp)} {own_score}-{opp_score}"
+            elif opp_score > own_score:
+                result = f"{tname(team)} lost to {tname(opp)} {opp_score}-{own_score}"
+            else:
+                result = f"{tname(team)} tied {tname(opp)} {own_score}-{opp_score}"
+            feed.append({
+                "id": f"perf-{pid}-{last_week}",
+                "category": "news",
+                "headline": (
+                    f"{name(pid)} "
+                    + phrase.format(v=int(num(ln[metric])))
+                    + f" in Week {last_week}"
+                ),
+                "summary": (
+                    result
+                    + (f". {name(pid).split()[-1]} accounted for {int(tds)} touchdown"
+                       f"{'s' if tds != 1 else ''}." if tds else ".")
+                ),
+                "timeAgo": played_on,
+            })
+
+    # 2. Injury designations that matter: ruled-out players with the most snaps
+    #    of production this season.
+    out_players = [
+        p for p in players_by_id.values()
+        if p["injuryStatus"] in ("out", "doubtful", "ir")
+        and (p["seasonStats"].get("gamesPlayed") or 0) >= 3
+    ]
+    out_players.sort(
+        key=lambda p: -(
+            (p["seasonStats"].get("passYds") or 0)
+            + (p["seasonStats"].get("scrimmageYds") or 0)
+            + (p["seasonStats"].get("totalTackles") or 0) * 8
+        )
+    )
+    for p in out_players[:3]:
+        label = {"ir": "on injured reserve", "out": "ruled out", "doubtful": "doubtful"}[
+            p["injuryStatus"]
+        ]
+        feed.append({
+            "id": f"inj-{p['id']}",
+            "category": "injury",
+            "headline": f"{p['name']} {label} for Week {week}",
+            "summary": (
+                f"The {tname(p['teamId'])} {p['position']} has played "
+                f"{p['seasonStats'].get('gamesPlayed', 0)} games this season."
+            ),
+            "timeAgo": f"Week {week} report",
+        })
+
+    # 3. The best upcoming matchup by combined winning percentage.
+    upcoming = [g for g in games if g["status"] == "scheduled" and g["week"] == week]
+    if upcoming:
+        upcoming.sort(key=lambda g: -(_winpct.get(g["homeTeamId"], 0) + _winpct.get(g["awayTeamId"], 0)))
+        g = upcoming[0]
+        feed.append({
+            "id": f"up-{g['id']}",
+            "category": "news",
+            "headline": (
+                f"{tname(g['awayTeamId'])} at {tname(g['homeTeamId'])} "
+                f"headlines Week {week}"
+            ),
+            "summary": (
+                f"Kickoff {g['kickoff']}"
+                + (f". {tname(g['homeTeamId'])} favored by {abs(g['spread'])}." if g["spread"] < 0
+                   else f". {tname(g['awayTeamId'])} favored by {abs(g['spread'])}." if g["spread"] > 0
+                   else ". No line posted.")
+            ),
+            "timeAgo": ordinal_day(g.get("gameday", "")),
+        })
+
+    # 4. Free-agency note: the most productive unsigned player.
+    fas = [p for p in players_by_id.values() if p.get("isFreeAgent")]
+    fas.sort(key=lambda p: -((p["seasonStats"].get("scrimmageYds") or 0)
+                             + (p["seasonStats"].get("totalTackles") or 0) * 8))
+    if fas:
+        p = fas[0]
+        feed.append({
+            "id": f"fa-{p['id']}",
+            "category": "free-agency",
+            "headline": f"{p['name']} remains unsigned",
+            "summary": (
+                f"The {p['position']} is the most productive player not on an "
+                f"active roster."
+            ),
+            "timeAgo": "Free agency",
+        })
+    return feed
+
+
+_winpct = {}
+
+
 def write(name, data):
     with open(os.path.join(OUT, name), "w") as f:
         json.dump(data, f, separators=(",", ":"))
@@ -494,20 +728,50 @@ def write(name, data):
 def main():
     os.makedirs(OUT, exist_ok=True)
 
-    write("teams.json", build_teams())
-    print("wrote teams")
+    sched = nfl.load_schedules(seasons=[SEASON]).filter(pl.col("game_type") == "REG")
+    week = current_week(sched)
+    last_completed = max(
+        (int(g["week"]) for g in sched.iter_rows(named=True) if g.get("result") is not None),
+        default=0,
+    )
+
+    teams = build_teams()
+    write("teams.json", teams)
+    for t in teams:
+        r = t["record"]
+        _winpct[t["id"]] = winpct(r["wins"], r["losses"], r["ties"])
+    print(f"wrote {len(teams)} teams")
 
     players, cmap, rostered_ids = build_players()
     free_agents = build_free_agents(rostered_ids, cmap)
-    write("players.json", players + free_agents)
+    all_players = players + free_agents
+    write("players.json", all_players)
     print(f"wrote {len(players)} players + {len(free_agents)} free agents")
 
     gstats = build_game_stats()
     write("gameStats.json", gstats)
-    print("wrote game stats")
+    print(f"wrote box scores for {len(gstats)} team-weeks")
 
-    write("games.json", build_games(gstats))
-    print("wrote games")
+    games = build_games(gstats)
+    write("games.json", games)
+    finals = sum(1 for g in games if g["status"] == "final")
+    print(f"wrote {len(games)} games ({finals} final, {len(games) - finals} upcoming)")
+
+    write("fantasy.json", build_weekly_fantasy())
+    print("wrote weekly fantasy points")
+
+    by_id = {p["id"]: p for p in all_players}
+    team_names = {t["id"]: t["name"] for t in teams}
+    write("news.json", build_news(games, by_id, gstats, week, team_names))
+    print("wrote league feed")
+
+    write("season.json", {
+        "season": SEASON,
+        "currentWeek": week,
+        "lastCompletedWeek": last_completed,
+        "updatedAt": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    })
+    print(f"wrote season meta (season {SEASON}, week {week})")
 
 
 if __name__ == "__main__":

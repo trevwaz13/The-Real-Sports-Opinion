@@ -129,6 +129,8 @@ export interface Player {
   yearsPro: number;
   injuryStatus: InjuryStatus;
   isFreeAgent: boolean;
+  /** Average annual value of the player's active contract, in $M (OverTheCap). */
+  capHit?: number;
   seasonStats: PlayerStats;
   careerStats: PlayerStats;
 }
@@ -148,7 +150,8 @@ export interface Game {
   awayScore: number;
   quarter?: number; // 1-4 (5 = OT) while live/final
   clock?: string; // "07:21"
-  kickoff: string; // display string, e.g. "Sun 1:00 PM ET"
+  kickoff: string; // display string, e.g. "Sun 1:00 PM"
+  gameday?: string; // ISO date, e.g. "2026-11-22"
   spread: number; // home perspective; negative = home favored
   overUnder: number;
   moneyline: { home: number; away: number };
@@ -186,9 +189,9 @@ export type WaiverTrend = "up" | "down" | "flat";
 
 export interface WaiverPlayer {
   playerId: string;
-  percentRostered: number;
-  addPct: number; // % of leagues adding this week
-  trend: WaiverTrend;
+  recentPPG: number; // PPR average over the last three scored weeks
+  seasonPPG: number; // PPR average across the season so far
+  trend: WaiverTrend; // recent form against the season average
 }
 
 // --- Live game detail (box score, play-by-play, animated field) -------------

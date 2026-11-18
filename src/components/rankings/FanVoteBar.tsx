@@ -62,21 +62,21 @@ export default function FanVoteBar({ position }: { position: Position }) {
     ? "Fan voting opens once accounts are connected."
     : userId
       ? "Build or update your Top 10 / Top 20 ballot."
-      : "Sign in to cast your ballot — one per position per week.";
+      : "Sign in to cast your ballot. One per position per week.";
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-silver bg-silver-light/40 px-4 py-3">
+      <div className="hero-silver mb-4 flex flex-wrap items-center justify-between gap-4 rounded-[14px] border border-silver px-5 py-4">
         <div>
-          <p className="text-sm font-bold text-ink">
+          <p className="font-display text-lg text-ink">
             Vote for the Fan {position} ranking
           </p>
-          <p className="text-xs text-silver-deep">{subtitle}</p>
+          <p className="mt-0.5 text-sm text-silver-deep">{subtitle}</p>
         </div>
         <button
           type="button"
           onClick={handleVote}
-          className="inline-flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-sm font-bold text-primary hover:opacity-90"
+          className="btn btn-primary"
         >
           <Vote size={16} />
           Cast your ballot

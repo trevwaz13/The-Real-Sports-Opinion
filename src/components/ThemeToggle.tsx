@@ -51,38 +51,27 @@ export default function ThemeToggle() {
       if (next === "system") localStorage.removeItem(STORAGE_KEY);
       else localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      /* private mode / storage disabled — the choice just won't persist */
+      /* private mode / storage disabled: the choice just won't persist */
     }
     apply(next);
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Theme"
-      className="inline-flex gap-1 rounded-lg border border-silver p-1"
-    >
-      {OPTIONS.map(({ value, label, Icon }) => {
-        const active = theme === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => choose(value)}
-            className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
-              active
-                ? "bg-ink text-primary"
-                : "text-silver-deep hover:bg-silver-light hover:text-ink"
-            }`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        );
-      })}
+    <div role="radiogroup" aria-label="Theme" className="chips">
+      {OPTIONS.map(({ value, label, Icon }) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={theme === value}
+          onClick={() => choose(value)}
+          className="inline-flex items-center gap-2 !px-4 !py-1.5"
+        >
+          <Icon size={16} />
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

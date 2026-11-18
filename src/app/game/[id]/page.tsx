@@ -1,29 +1,63 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { getGame, getGameDetail, getTeam } from "@/data/api";
 import type { Team } from "@/data/types";
 import PageContainer from "@/components/PageContainer";
 import TeamLogo from "@/components/TeamLogo";
 import GameLiveView from "@/components/game/GameLiveView";
 
-// One side of the matchup header: logo, name, and record — clickable as a unit.
-function TeamBlock({ team }: { team: Team }) {
+// One side of the scoreboard: logo, name and record,
+// clickable as a unit. `align` mirrors the home side.
+function TeamBlock({
+  team,
+  score,
+  showScore,
+  lost,
+  align,
+}: {
+  team: Team;
+  score: number;
+  showScore: boolean;
+  lost: boolean;
+  align: "left" | "right";
+}) {
+  const right = align === "right";
   return (
-    <Link
-      href={`/team/${team.id}`}
-      className="group flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center"
+    <div
+      className={`flex min-w-0 flex-1 items-center gap-3 sm:gap-6 ${right ? "flex-row-reverse text-right" : ""}`}
     >
-      <TeamLogo teamId={team.id} size={48} />
-      <div className="min-w-0">
-        <div className="truncate text-base font-bold text-ink group-hover:underline">
-          {team.name}
-        </div>
-        <div className="text-xs text-silver-deep">
-          {team.abbreviation} · {team.record.wins}-{team.record.losses}
-          {team.record.ties ? `-${team.record.ties}` : ""}
-        </div>
-      </div>
-    </Link>
+      <Link
+        href={`/team/${team.id}`}
+        className={`group flex min-w-0 flex-1 items-center gap-3 ${right ? "flex-row-reverse" : ""}`}
+      >
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-silver bg-white shadow-float sm:h-20 sm:w-20 sm:rounded-[22px]">
+          <TeamLogo teamId={team.id} size={44} className="sm:hidden" />
+          <TeamLogo teamId={team.id} size={60} className="hidden sm:block" />
+        </span>
+        <span className="min-w-0">
+          <span className="hidden text-sm text-silver-deep sm:block">
+            {team.city}
+          </span>
+          <span className="font-display block truncate text-lg leading-tight group-hover:underline sm:text-3xl">
+            {team.name}
+          </span>
+          <span className="num mt-1 block text-xs text-silver-deep">
+            {team.record.wins}-{team.record.losses}
+            {team.record.ties ? `-${team.record.ties}` : ""}
+          </span>
+        </span>
+      </Link>
+      {showScore && (
+        <span
+          className={`num font-display text-5xl leading-none tracking-tighter sm:text-7xl ${
+            lost ? "text-silver-deep/70" : "text-ink"
+          }`}
+        >
+          {score}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -43,11 +77,8 @@ export default async function GamePage({
   const isLive = game.status === "live";
   const isFinal = game.status === "final";
   const showScore = isLive || isFinal;
-  const statusText = isLive
-    ? `LIVE · Q${game.quarter} ${game.clock}`
-    : isFinal
-      ? "Final"
-      : game.kickoff;
+  const awayWon = isFinal && game.awayScore > game.homeScore;
+  const homeWon = isFinal && game.homeScore > game.awayScore;
   const spreadFavored =
     game.spread === 0
       ? "PK"
@@ -56,97 +87,97 @@ export default async function GamePage({
         }`;
 
   return (
-    <PageContainer className="pb-12">
-      <Link
-        href="/"
-        className="mt-2 inline-block text-sm font-semibold text-silver-deep hover:text-ink"
-      >
-        ← Back to scores
-      </Link>
+    <div>
+      {/* Scoreboard */}
+      <div className="hero-silver relative overflow-hidden">
+        <div aria-hidden className="absolute inset-x-0 top-0 flex h-1">
+          <div
+            className="flex-1"
+            style={{ backgroundColor: away.primaryColor }}
+          />
+          <div
+            className="flex-1"
+            style={{ backgroundColor: home.primaryColor }}
+          />
+        </div>
+        <PageContainer className="reveal relative pb-8 pt-5 sm:pb-12">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-full py-1 pl-2 pr-3 text-sm text-silver-deep transition-colors hover:bg-silver-light hover:text-ink"
+          >
+            <ArrowLeft size={14} />
+            Scores
+          </Link>
 
-      {/* Scoreboard header — away left, score center, home right */}
-      <div className="mt-2 rounded-lg border border-silver p-3 sm:p-4">
-        <div className="flex items-center justify-between gap-2 sm:gap-3">
-          <TeamBlock team={away} />
-
-          {/* Center scoreboard */}
-          <div className="flex shrink-0 flex-col items-center">
-            <div className="mb-1 flex items-center gap-2 whitespace-nowrap text-sm font-semibold">
-              {isLive && (
-                <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-              )}
-              <span className={isLive ? "text-ink" : "text-silver-deep"}>
-                {statusText}
+          <div className="mt-4 flex justify-center sm:mt-2">
+            {isLive ? (
+              <span className="tag bg-live text-white">
+                Live Q{game.quarter} {game.clock}
               </span>
-            </div>
-            {showScore ? (
-              <div className="flex items-center gap-6 sm:gap-10">
-                <span
-                  className={`text-4xl font-black tabular-nums sm:text-5xl ${
-                    isFinal && game.awayScore > game.homeScore
-                      ? "text-ink"
-                      : "text-silver-deep"
-                  }`}
-                >
-                  {game.awayScore}
+            ) : isFinal ? (
+              <span className="tag bg-ink text-primary">Final</span>
+            ) : (
+              <span className="num text-sm font-semibold">{game.kickoff}</span>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-4 sm:gap-10">
+            <TeamBlock
+              team={away}
+              score={game.awayScore}
+              showScore={showScore}
+              lost={homeWon}
+              align="left"
+            />
+            {!showScore && (
+              <span className="text-2xl text-silver-deep">at</span>
+            )}
+            <TeamBlock
+              team={home}
+              score={game.homeScore}
+              showScore={showScore}
+              lost={awayWon}
+              align="right"
+            />
+          </div>
+
+          <p className="num mt-6 text-center text-sm text-silver-deep">
+            {spreadFavored}, O/U {game.overUnder}
+          </p>
+
+          {isLive && game.liveWinProbability && (
+            <div className="mx-auto mt-4 max-w-xl">
+              <div className="mb-1 flex justify-between">
+                <span className="text-xs text-silver-deep">
+                  {away.abbreviation} {game.liveWinProbability.away}%
                 </span>
-                <span className="text-2xl font-bold text-silver sm:text-3xl">
-                  –
+                <span className="text-xs text-silver-deep">
+                  Win probability
                 </span>
-                <span
-                  className={`text-4xl font-black tabular-nums sm:text-5xl ${
-                    isFinal && game.homeScore > game.awayScore
-                      ? "text-ink"
-                      : "text-silver-deep"
-                  }`}
-                >
-                  {game.homeScore}
+                <span className="text-xs text-silver-deep">
+                  {home.abbreviation} {game.liveWinProbability.home}%
                 </span>
               </div>
-            ) : (
-              <span className="text-3xl font-bold text-silver-deep">@</span>
-            )}
-            <div className="mt-1 whitespace-nowrap text-center text-[11px] text-silver-deep">
-              {spreadFavored} · O/U {game.overUnder}
-            </div>
-          </div>
-
-          <TeamBlock team={home} />
-        </div>
-
-        {isLive && game.liveWinProbability && (
-          <div className="mt-3">
-            <div className="mb-1 flex justify-between text-[10px] font-semibold uppercase text-silver-deep">
-              <span>
-                {away.abbreviation} {game.liveWinProbability.away}%
-              </span>
-              <span>Win probability</span>
-              <span>
-                {home.abbreviation} {game.liveWinProbability.home}%
-              </span>
-            </div>
-            <div className="flex h-2 overflow-hidden rounded-full bg-silver-light">
               <div
-                className="h-full"
-                style={{
-                  width: `${game.liveWinProbability.away}%`,
-                  backgroundColor: away.primaryColor,
-                }}
-              />
-              <div
-                className="h-full"
-                style={{
-                  width: `${game.liveWinProbability.home}%`,
-                  backgroundColor: home.primaryColor,
-                }}
+                className="meter"
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={game.liveWinProbability.away}
+                aria-label={`${away.abbreviation} win probability`}
+                style={
+                  {
+                    "--value": game.liveWinProbability.away,
+                  } as React.CSSProperties
+                }
               />
             </div>
-          </div>
-        )}
+          )}
+        </PageContainer>
       </div>
 
       {/* Field / play-by-play / box score */}
-      <div className="mt-4">
+      <PageContainer className="mt-8">
         {detail ? (
           <GameLiveView
             detail={detail}
@@ -155,12 +186,14 @@ export default async function GamePage({
             autoAdvance={isLive}
           />
         ) : (
-          <div className="rounded-lg border border-silver bg-silver-light/40 p-10 text-center text-silver-deep">
-            This game hasn&apos;t started yet. Check back at kickoff —{" "}
-            {game.kickoff}.
+          <div className="panel px-6 py-14 text-center">
+            <p className="font-display text-2xl text-ink">Not started yet</p>
+            <p className="mt-1 text-silver-deep">
+              Check back at kickoff: {game.kickoff}.
+            </p>
           </div>
         )}
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </div>
   );
 }
