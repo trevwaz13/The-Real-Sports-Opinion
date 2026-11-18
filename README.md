@@ -20,7 +20,6 @@ aggregated **Fan** vote.
 | **Stats** (`/stats`) | Every tracked stat for every position, sortable and searchable, with a sticky player column |
 | **Standings** (`/standings`) | League / conference / division scopes, win-percentage bars, plus RSO and Media power rankings with movement arrows |
 | **Fantasy** (`/fantasy`) | Real PPR scoring by week or season to date, position filters, and a waiver watch comparing recent form to season average |
-| **Be a GM** (`/be-a-gm`) | Build a 19-man starting lineup under a **$240M salary cap** using real contract values; graded live by the RSO engine |
 | **Game** (`/game/[id]`) | Scoreboard, box score, and an animated field with play-by-play |
 | **Team / Player** (`/team/[id]`, `/player/[id]`) | Rosters, team splits, season-at-a-glance bars, career stats, and the full RSO score breakdown |
 
@@ -37,10 +36,8 @@ aggregated **Fan** vote.
   bonuses fired — rendered on each player page.
 - Unit-tested against hand-checked players (`src/lib/rsoScoring.test.ts`).
 
-The same engine ranks players on `/rankings`, grades lineups on `/be-a-gm`, and
-feeds the team power rankings on `/standings`.
-
-![Be a GM](docs/screenshots/be-a-gm.jpg)
+The same engine ranks players on `/rankings` and feeds the team power rankings
+on `/standings`.
 
 ## Live data
 

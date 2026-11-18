@@ -242,20 +242,6 @@ const RSO_RANKINGS: Record<Position, Ranking> = Object.fromEntries(
   ]),
 ) as Record<Position, Ranking>;
 
-/** Every player at a position with their live RSO score, best first. Used by
- *  the GM roster builder, which needs the full pool rather than the top 32. */
-export function getScoredPool(position: Position): {
-  player: Player;
-  score: number;
-}[] {
-  return rankByRso(PLAYERS, position)
-    .map((entry) => ({
-      player: PLAYERS_BY_ID[entry.playerId],
-      score: entry.score,
-    }))
-    .filter((row) => row.player && !row.player.isFreeAgent);
-}
-
 export function getRankings(
   position: Position,
   source: RankingSource,

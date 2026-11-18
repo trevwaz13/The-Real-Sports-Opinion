@@ -11,7 +11,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Stats", href: "/stats" },
   { label: "Standings", href: "/standings" },
   { label: "Fantasy", href: "/fantasy" },
-  { label: "Be a GM", href: "/be-a-gm" },
 ];
 
 /** Whether `href` is the active route for the given pathname. */

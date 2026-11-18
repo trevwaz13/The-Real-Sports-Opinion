@@ -9,7 +9,8 @@ Football fans checking in during the week: scanning scores, comparing where a pl
 ## Surfaces and modes
 - Home, rankings, stats, standings, team, player, game: **Operate** (scan, compare, drill in).
 - Sign in / sign up / account / settings / admin: **Operate**.
-- Fantasy, Be a GM: placeholders for now.
+- Fantasy: **Operate** (weekly and season PPR scoring, waiver watch).
+- Be a GM (a salary-cap lineup builder) is built but shelved for now; see git history.
 
 ## Product truths to keep
 - Every player and team name links to its page.
